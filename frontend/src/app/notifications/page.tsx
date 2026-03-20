@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, type RegressionAlert } from "@/lib/api";
-import { formatDate, formatRelativeTime } from "@/lib/table-helpers";
+import { DEFAULT_PAGE_SIZE, formatDate, formatRelativeTime, paginate } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
+import { TablePagination } from "@/components/table-pagination";
+import { Search } from "@/lib/icons";
 
 export default function NotificationsPage() {
   const { setItems } = useBreadcrumbs();
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<RegressionAlert[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const load = async () => {
     setLoading(true);
@@ -31,6 +37,14 @@ export default function NotificationsPage() {
     setItems([{ label: "Notifications" }]);
     void load();
   }, [setItems]);
+
+  const filtered = useMemo(() => {
+    if (!search) return alerts;
+    const q = search.toLowerCase();
+    return alerts.filter((a) => `${a.title} ${a.detail ?? ""}`.toLowerCase().includes(q));
+  }, [alerts, search]);
+
+  const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
 
   return (
     <div className="p-8 space-y-6">
@@ -56,17 +70,38 @@ export default function NotificationsPage() {
           {error}
         </div>
       )}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
+          <Input
+            placeholder="Search notifications..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="pl-9"
+          />
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
-      ) : alerts.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="border rounded-lg p-10 text-sm text-muted-foreground text-center">
           No new notifications.
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
+          <TablePagination
+            totalItems={filtered.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
           <Table>
             <TableHeader>
               <TableRow>
@@ -76,7 +111,7 @@ export default function NotificationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {alerts.map((a) => (
+              {paged.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell>
                     <div className="font-medium">{a.title}</div>

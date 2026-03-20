@@ -82,6 +82,16 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     localStorage.setItem("theme", next ? "dark" : "light");
   };
 
+  const profileVisual = authUser?.avatar_url ? (
+    <span
+      aria-label={authUser.display_name || authUser.email || "Profile"}
+      className="h-4 w-4 rounded-full bg-cover bg-center"
+      style={{ backgroundImage: `url("${authUser.avatar_url}")` }}
+    />
+  ) : (
+    <User className="h-4 w-4" />
+  );
+
   return (
     <aside
       className={cn(
@@ -229,7 +239,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                     className="h-8 w-8 p-0"
                     aria-label="Profile"
                   >
-                    <User className="h-4 w-4" />
+                    {profileVisual}
                   </Button>
                 </Link>
               }
@@ -244,7 +254,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               size="sm"
               className="w-full justify-start gap-2"
             >
-              <User className="h-4 w-4" />
+              {profileVisual}
               Profile
             </Button>
           </Link>

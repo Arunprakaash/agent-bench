@@ -43,6 +43,7 @@ import {
   BgColorsOutlined,
   UserOutlined,
   BellOutlined,
+  RadiusSettingOutlined,
 } from "@ant-design/icons";
 
 type IconProps = { className?: string };
@@ -88,6 +89,7 @@ export const TrendingUp = ArrowUpOutlined;
 export const Upload = UploadOutlined;
 export const User = UserOutlined;
 export const Bell = BellOutlined;
+export const RadiusSetting = RadiusSettingOutlined;
 export const Wand2 = BgColorsOutlined;
 export const Wrench = ToolOutlined;
 export const X = CloseOutlined;

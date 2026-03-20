@@ -21,7 +21,7 @@ import {
   Play,
   FolderOpen,
   FailureInbox,
-  Clock,
+  RadiusSetting,
   Settings,
   User,
   Bell,
@@ -37,7 +37,7 @@ const navItems = [
   { href: "/suites", label: "Suites", icon: FolderOpen },
   { href: "/failures", label: "Failures", icon: FailureInbox },
   { href: "/runs", label: "Test Runs", icon: Play },
-  { href: "/automation", label: "Automation", icon: Clock },
+  { href: "/automation", label: "Automation", icon: RadiusSetting },
 ];
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {

@@ -36,7 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/table-pagination";
-import { Plus, FlaskConical, Play, Search, Trash2, Upload } from "@/lib/icons";
+import { Download, Plus, FlaskConical, Play, Search, Trash2, Upload } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -80,6 +80,7 @@ function ScenariosPageInner() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [running, setRunning] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -184,6 +185,33 @@ function ScenariosPageInner() {
       setActionError((e as Error).message || "Failed to run selected scenarios.");
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleExportSelected = async () => {
+    if (selectedIds.length === 0 || exporting) return;
+    setExporting(true);
+    setActionError(null);
+    try {
+      const exports = await Promise.all(selectedIds.map((id) => api.scenarios.export(id)));
+      const payload = {
+        exported_at: new Date().toISOString(),
+        count: exports.length,
+        scenarios: exports,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `scenarios-export-${new Date().toISOString().slice(0, 19).replaceAll(":", "-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setActionError((e as Error).message || "Failed to export selected scenarios.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -337,8 +365,16 @@ function ScenariosPageInner() {
         <div className="border rounded-lg">
           <div className="flex justify-end gap-2 p-3 border-b">
             <Button
+              variant="outline"
+              onClick={handleExportSelected}
+              disabled={selectedIds.length === 0 || exporting || running || deleting}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? "Exporting..." : `Export Selected (${selectedIds.length})`}
+            </Button>
+            <Button
               onClick={handleRunSelected}
-              disabled={selectedIds.length === 0 || running || deleting}
+              disabled={selectedIds.length === 0 || running || deleting || exporting}
             >
               <Play className="mr-2 h-4 w-4" />
               {running ? "Running..." : `Run Selected (${selectedIds.length})`}
@@ -346,7 +382,7 @@ function ScenariosPageInner() {
             <Button
               variant="destructive"
               onClick={handleDeleteSelected}
-              disabled={selectedIds.length === 0 || deleting || running}
+              disabled={selectedIds.length === 0 || deleting || running || exporting}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}

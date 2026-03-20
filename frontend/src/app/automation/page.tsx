@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { api, type RegressionAlert, type ScenarioListItem, type ScheduledRun, type SuiteListItem } from "@/lib/api";
 import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
-import { Pencil, Plus, Search, Trash2 } from "@/lib/icons";
+import { Calendar, Pencil, Plus, Search, Trash2 } from "@/lib/icons";
 import { TablePagination } from "@/components/table-pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -27,6 +27,7 @@ export default function AutomationPage() {
   const [schedPage, setSchedPage] = useState(1);
   const [alertsPage, setAlertsPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   const scenarioNameById = useMemo(
     () => new Map(scenarios.map((s) => [s.id, s.name])),
@@ -155,16 +156,35 @@ export default function AutomationPage() {
             <SelectItem value="suite">Suite</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          type="date"
-          value={dateFilter}
-          onChange={(e) => {
-            setDateFilter(e.target.value);
-            setSchedPage(1);
-            setAlertsPage(1);
-          }}
-          className="w-[180px]"
-        />
+        <div className="relative w-[180px]">
+          <Input
+            ref={dateInputRef}
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setSchedPage(1);
+              setAlertsPage(1);
+            }}
+            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+          />
+          <button
+            type="button"
+            aria-label="Open date picker"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              const input = dateInputRef.current;
+              if (!input) return;
+              if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              } else {
+                input.focus();
+              }
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+        </div>
         <Button
           variant="ghost"
           onClick={() => {

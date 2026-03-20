@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.auth import get_current_user
 from app.database import async_session, get_db
@@ -18,6 +19,7 @@ from app.schemas.automation import (
     RegressionAlertResponse,
     ScheduledRunCreate,
     ScheduledRunResponse,
+    ScheduledRunUpdate,
 )
 
 router = APIRouter()
@@ -113,6 +115,50 @@ async def create_schedule(
         next_run_at=now + timedelta(minutes=data.interval_minutes),
     )
     db.add(schedule)
+    await db.commit()
+    await db.refresh(schedule)
+    return schedule
+
+
+@router.get("/schedules/{schedule_id}", response_model=ScheduledRunResponse)
+async def get_schedule(
+    schedule_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    schedule = (
+        await db.execute(
+            select(ScheduledRun).where(ScheduledRun.id == schedule_id, ScheduledRun.owner_user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    return schedule
+
+
+@router.put("/schedules/{schedule_id}", response_model=ScheduledRunResponse)
+async def update_schedule(
+    schedule_id: UUID,
+    data: ScheduledRunUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    schedule = (
+        await db.execute(
+            select(ScheduledRun).where(ScheduledRun.id == schedule_id, ScheduledRun.owner_user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+
+    if data.interval_minutes is not None:
+        schedule.interval_minutes = data.interval_minutes
+        schedule.next_run_at = datetime.now(timezone.utc) + timedelta(minutes=data.interval_minutes)
+    if data.config is not None:
+        schedule.config = data.config
+    if data.is_active is not None:
+        schedule.is_active = data.is_active
+
     await db.commit()
     await db.refresh(schedule)
     return schedule

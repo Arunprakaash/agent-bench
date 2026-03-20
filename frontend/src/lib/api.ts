@@ -325,6 +325,12 @@ export interface ScheduledRunCreate {
   is_active?: boolean;
 }
 
+export interface ScheduledRunUpdate {
+  interval_minutes?: number;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
 export interface RegressionAlert {
   id: string;
   scenario_id: string | null;
@@ -434,9 +440,15 @@ export const api = {
   },
   automation: {
     listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),
+    getSchedule: (id: string) => request<ScheduledRun>(`/api/automation/schedules/${id}`),
     createSchedule: (data: ScheduledRunCreate) =>
       request<ScheduledRun>("/api/automation/schedules", {
         method: "POST",
+        body: JSON.stringify(data),
+      }),
+    updateSchedule: (id: string, data: ScheduledRunUpdate) =>
+      request<ScheduledRun>(`/api/automation/schedules/${id}`, {
+        method: "PUT",
         body: JSON.stringify(data),
       }),
     deleteSchedule: (id: string) =>

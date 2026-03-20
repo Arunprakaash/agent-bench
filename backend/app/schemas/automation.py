@@ -15,6 +15,12 @@ class ScheduledRunCreate(BaseModel):
     is_active: bool = True
 
 
+class ScheduledRunUpdate(BaseModel):
+    interval_minutes: int | None = Field(default=None, ge=5, le=10080)
+    config: dict | None = None
+    is_active: bool | None = None
+
+
 class ScheduledRunResponse(BaseModel):
     id: UUID
     target_type: ScheduleTargetType

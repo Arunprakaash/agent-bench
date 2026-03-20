@@ -3,20 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, type RegressionAlert, type ScenarioListItem, type ScheduledRun, type SuiteListItem } from "@/lib/api";
-import { formatDate } from "@/lib/table-helpers";
+import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
-import { Clock, Trash2 } from "@/lib/icons";
+import { Pencil, Plus, Search, Trash2 } from "@/lib/icons";
+import { TablePagination } from "@/components/table-pagination";
 
 export default function AutomationPage() {
   const { setItems } = useBreadcrumbs();
@@ -27,22 +20,11 @@ export default function AutomationPage() {
   const [scenarios, setScenarios] = useState<ScenarioListItem[]>([]);
   const [suites, setSuites] = useState<SuiteListItem[]>([]);
 
-  const [targetType, setTargetType] = useState<"scenario" | "suite">("scenario");
-  const [scenarioId, setScenarioId] = useState<string>("");
-  const [suiteId, setSuiteId] = useState<string>("");
-  const [intervalMinutes, setIntervalMinutes] = useState("1440");
-  const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
+  const [schedPage, setSchedPage] = useState(1);
+  const [alertsPage, setAlertsPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const scenarioOptions = useMemo(() => scenarios.map((s) => ({ value: s.id, label: s.name })), [scenarios]);
-  const suiteOptions = useMemo(() => suites.map((s) => ({ value: s.id, label: s.name })), [suites]);
-  const selectedScenarioLabel = useMemo(
-    () => scenarioOptions.find((opt) => opt.value === scenarioId)?.label,
-    [scenarioOptions, scenarioId],
-  );
-  const selectedSuiteLabel = useMemo(
-    () => suiteOptions.find((opt) => opt.value === suiteId)?.label,
-    [suiteOptions, suiteId],
-  );
   const scenarioNameById = useMemo(
     () => new Map(scenarios.map((s) => [s.id, s.name])),
     [scenarios],
@@ -51,6 +33,21 @@ export default function AutomationPage() {
     () => new Map(suites.map((s) => [s.id, s.name])),
     [suites],
   );
+  const filteredSchedules = useMemo(() => {
+    if (!search) return schedules;
+    const q = search.toLowerCase();
+    return schedules.filter((s) => {
+      const target = s.target_type === "scenario" ? scenarioNameById.get(s.scenario_id ?? "") : suiteNameById.get(s.suite_id ?? "");
+      return `${target ?? ""} ${s.target_type}`.toLowerCase().includes(q);
+    });
+  }, [schedules, search, scenarioNameById, suiteNameById]);
+  const filteredAlerts = useMemo(() => {
+    if (!search) return alerts;
+    const q = search.toLowerCase();
+    return alerts.filter((a) => `${a.title} ${a.detail ?? ""}`.toLowerCase().includes(q));
+  }, [alerts, search]);
+  const pagedSchedules = useMemo(() => paginate(filteredSchedules, schedPage, pageSize), [filteredSchedules, schedPage, pageSize]);
+  const pagedAlerts = useMemo(() => paginate(filteredAlerts, alertsPage, pageSize), [filteredAlerts, alertsPage, pageSize]);
 
   const load = async () => {
     setLoading(true);
@@ -78,43 +75,19 @@ export default function AutomationPage() {
     void load();
   }, [setItems]);
 
-  const createSchedule = async () => {
-    const interval = Number(intervalMinutes);
-    if (!Number.isFinite(interval) || interval < 5) {
-      setError("Interval must be at least 5 minutes.");
-      return;
-    }
-    if (targetType === "scenario" && !scenarioId) {
-      setError("Select a scenario.");
-      return;
-    }
-    if (targetType === "suite" && !suiteId) {
-      setError("Select a suite.");
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-    try {
-      await api.automation.createSchedule({
-        target_type: targetType,
-        scenario_id: targetType === "scenario" ? scenarioId : undefined,
-        suite_id: targetType === "suite" ? suiteId : undefined,
-        interval_minutes: interval,
-      });
-      await load();
-    } catch (e) {
-      setError((e as Error).message || "Failed to create schedule.");
-    } finally {
-      setCreating(false);
-    }
-  };
-
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Automation</h1>
-        <p className="text-muted-foreground mt-1">Scheduled runs and regression alerts.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Automation</h1>
+          <p className="text-muted-foreground mt-1">Scheduled runs and regression alerts.</p>
+        </div>
+        <Link href="/automation/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            New Schedule
+          </Button>
+        </Link>
       </div>
 
       {error && (
@@ -123,70 +96,19 @@ export default function AutomationPage() {
         </div>
       )}
 
-      <div className="border rounded-lg p-5 space-y-6">
-        <div>
-          <h2 className="text-base font-semibold">Create schedule</h2>
-          <p className="text-sm text-muted-foreground mt-1.5">
-            Pick a scenario or suite and run it automatically at a fixed interval.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div className="space-y-2 lg:col-span-2">
-            <Label>Target type</Label>
-            <Select value={targetType} onValueChange={(v) => setTargetType(v as "scenario" | "suite")}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="scenario">Scenario</SelectItem>
-                <SelectItem value="suite">Suite</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2 lg:col-span-5">
-            <Label>{targetType === "scenario" ? "Scenario" : "Suite"}</Label>
-            {targetType === "scenario" ? (
-              <Select value={scenarioId} onValueChange={setScenarioId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue className="sr-only" placeholder="Select scenario" />
-                  <span className="line-clamp-1">
-                    {selectedScenarioLabel ?? "Select scenario"}
-                  </span>
-                </SelectTrigger>
-                <SelectContent className="max-h-80">
-                  {scenarioOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Select value={suiteId} onValueChange={setSuiteId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue className="sr-only" placeholder="Select suite" />
-                  <span className="line-clamp-1">
-                    {selectedSuiteLabel ?? "Select suite"}
-                  </span>
-                </SelectTrigger>
-                <SelectContent className="max-h-80">
-                  {suiteOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="space-y-2 lg:col-span-2">
-            <Label>Interval (minutes)</Label>
-            <Input value={intervalMinutes} onChange={(e) => setIntervalMinutes(e.target.value)} />
-          </div>
-        </div>
-        <div className="flex justify-end pt-1">
-          <Button onClick={createSchedule} disabled={creating}>
-            <Clock className="mr-2 h-4 w-4" />
-            {creating ? "Creating..." : "Create Schedule"}
-          </Button>
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
+          <Input
+            placeholder="Search schedules and alerts..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setSchedPage(1);
+              setAlertsPage(1);
+            }}
+            className="pl-9"
+          />
         </div>
       </div>
 
@@ -195,9 +117,17 @@ export default function AutomationPage() {
           <div className="p-4 border-b font-medium">Schedules</div>
           {loading ? (
             <div className="p-6 text-sm text-muted-foreground">Loading…</div>
-          ) : schedules.length === 0 ? (
+          ) : filteredSchedules.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No schedules yet.</div>
           ) : (
+            <>
+            <TablePagination
+              totalItems={filteredSchedules.length}
+              page={schedPage}
+              pageSize={pageSize}
+              onPageChange={setSchedPage}
+              onPageSizeChange={setPageSize}
+            />
             <Table>
               <TableHeader>
                 <TableRow>
@@ -209,7 +139,7 @@ export default function AutomationPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {schedules.map((s) => (
+                {pagedSchedules.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>
                       {s.target_type === "scenario"
@@ -222,6 +152,11 @@ export default function AutomationPage() {
                     <TableCell>{s.interval_minutes}m</TableCell>
                     <TableCell>{formatDate(s.next_run_at)}</TableCell>
                     <TableCell className="text-right">
+                      <Link href={`/automation/${s.id}/edit`}>
+                        <Button variant="outline" size="sm" className="mr-2">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         variant="destructive"
                         size="sm"
@@ -237,6 +172,7 @@ export default function AutomationPage() {
                 ))}
               </TableBody>
             </Table>
+            </>
           )}
         </div>
 
@@ -244,9 +180,17 @@ export default function AutomationPage() {
           <div className="p-4 border-b font-medium">Regression alerts</div>
           {loading ? (
             <div className="p-6 text-sm text-muted-foreground">Loading…</div>
-          ) : alerts.length === 0 ? (
+          ) : filteredAlerts.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No open alerts.</div>
           ) : (
+            <>
+            <TablePagination
+              totalItems={filteredAlerts.length}
+              page={alertsPage}
+              pageSize={pageSize}
+              onPageChange={setAlertsPage}
+              onPageSizeChange={setPageSize}
+            />
             <Table>
               <TableHeader>
                 <TableRow>
@@ -256,7 +200,7 @@ export default function AutomationPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {alerts.map((a) => (
+                {pagedAlerts.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell>
                       <div className="font-medium">{a.title}</div>
@@ -282,6 +226,7 @@ export default function AutomationPage() {
                 ))}
               </TableBody>
             </Table>
+            </>
           )}
         </div>
       </div>

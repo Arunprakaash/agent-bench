@@ -41,6 +41,7 @@ import {
   UploadOutlined,
   WarningOutlined,
   BgColorsOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 type IconProps = { className?: string };
@@ -84,6 +85,7 @@ export const Trash2 = DeleteOutlined;
 export const TrendingDown = ArrowDownOutlined;
 export const TrendingUp = ArrowUpOutlined;
 export const Upload = UploadOutlined;
+export const User = UserOutlined;
 export const Wand2 = BgColorsOutlined;
 export const Wrench = ToolOutlined;
 export const X = CloseOutlined;

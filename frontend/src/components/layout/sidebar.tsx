@@ -22,6 +22,7 @@ import {
   FolderOpen,
   FailureInbox,
   Settings,
+  User,
 } from "@/lib/icons";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { getInitialDarkFromStorage } from "@/lib/theme";
@@ -134,11 +135,10 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       </nav>
       <div
         className={cn(
-          "flex items-center border-t p-3",
-          collapsed ? "flex-col justify-center gap-2" : "justify-between",
+          "flex border-t p-3",
+          collapsed ? "flex-col items-center gap-2" : "flex-col gap-1",
         )}
       >
-        {!collapsed && <div className="h-0" />}
         {/* Controlled open + direct button clicks: DialogTrigger inside Tooltip breaks ref wiring for Base UI when collapsed. */}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen} modal={false}>
           {collapsed ? (
@@ -217,6 +217,38 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             </div>
           </DialogContent>
         </Dialog>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Link href="/profile">
+                  <Button
+                    type="button"
+                    variant={pathname.startsWith("/profile") ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    aria-label="Profile"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                </Link>
+              }
+            />
+            <TooltipContent side="right">Profile</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Link href="/profile" className="w-full">
+            <Button
+              type="button"
+              variant={pathname.startsWith("/profile") ? "secondary" : "ghost"}
+              size="sm"
+              className="w-full justify-start gap-2"
+            >
+              <User className="h-4 w-4" />
+              Profile
+            </Button>
+          </Link>
+        )}
       </div>
     </aside>
   );

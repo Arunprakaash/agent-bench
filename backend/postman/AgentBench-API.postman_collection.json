@@ -1,0 +1,574 @@
+{
+  "info": {
+    "name": "Agent Testing Platform API",
+    "description": "API collection for the Agent Testing Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Dev",
+      "item": [
+        {
+          "name": "Reset database",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/reset?confirm=yes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dev",
+                "reset"
+              ],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "yes",
+                  "description": "Must be 'yes' to confirm wipe"
+                }
+              ]
+            },
+            "description": "Wipes all test data (turn_results, test_runs, suite_scenarios, scenario_revisions, scenario_turns, scenarios, suites, agents). Use with reset_and_seed.py to repopulate."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "description": "Creates a user. Password must be at least 6 characters. Returns JWT in `token`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"display_name\": \"User\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agents",
+      "item": [
+        {
+          "name": "List Agents",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/agents"
+          }
+        },
+        {
+          "name": "Create Agent",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/agents",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Interview Agent\",\n  \"description\": \"Default interview agent entrypoint\",\n  \"module\": \"test_agents.interview_agent\",\n  \"agent_class\": \"TestableInterviewAgent\",\n  \"default_llm_model\": \"gpt-4o-mini\",\n  \"default_judge_model\": \"gpt-4o-mini\",\n  \"default_agent_args\": {\n    \"candidate_name\": \"Alice\",\n    \"interview_prompt\": \"## Questions\\n1. Tell me about yourself\\n2. What is your experience with Python?\"\n  },\n  \"tags\": [\"interview\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Agent",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/agents/{{agentId}}"
+          }
+        },
+        {
+          "name": "Get Agent Arg Schema",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/agents/{{agentId}}/arg-schema"
+          }
+        },
+        {
+          "name": "Update Agent",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/agents/{{agentId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Agent",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/agents/{{agentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scenarios",
+      "item": [
+        {
+          "name": "List Scenarios",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/scenarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "scenarios"
+              ],
+              "query": [
+                {
+                  "key": "tag",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Scenario",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/scenarios/{{scenarioId}}"
+          }
+        },
+        {
+          "name": "Create Scenario",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/scenarios",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Greeting Test\",\n  \"description\": \"Tests that the interview agent greets and starts asking questions\",\n  \"agent_id\": \"{{agentId}}\",\n  \"agent_module\": \"test_agents.interview_agent\",\n  \"agent_class\": \"TestableInterviewAgent\",\n  \"llm_model\": \"gpt-4o-mini\",\n  \"judge_model\": \"gpt-4o-mini\",\n  \"agent_args\": {\n    \"candidate_name\": \"Alice\",\n    \"interview_prompt\": \"## Questions\\n1. Tell me about yourself\\n2. What is your experience with Python?\"\n  },\n  \"tags\": [\"greeting\", \"basic\"],\n  \"turns\": [\n    {\n      \"user_input\": \"Hello\",\n      \"expectations\": [\n        {\n          \"type\": \"message\",\n          \"role\": \"assistant\",\n          \"intent\": \"Greets the candidate and introduces themselves as an interviewer\"\n        }\n      ]\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Scenario",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/scenarios/{{scenarioId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Greeting Test\",\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Export Scenario (JSON)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/scenarios/{{scenarioId}}/export"
+          }
+        },
+        {
+          "name": "List Scenario Versions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/scenarios/{{scenarioId}}/versions"
+          }
+        },
+        {
+          "name": "Import Scenario (JSON)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/scenarios/import",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Imported Scenario\",\n  \"description\": \"Imported from JSON\",\n  \"agent_module\": \"test_agents.interview_agent\",\n  \"agent_class\": \"TestableInterviewAgent\",\n  \"llm_model\": \"gpt-4o-mini\",\n  \"judge_model\": \"gpt-4o-mini\",\n  \"tags\": [\"import\"],\n  \"turns\": [\n    {\n      \"user_input\": \"Hello\",\n      \"expectations\": [\n        {\n          \"type\": \"message\",\n          \"role\": \"assistant\",\n          \"intent\": \"Greets the candidate\"\n        }\n      ]\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Scenario",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/scenarios/{{scenarioId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Chat Turn",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/chat/turn",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"agent_module\": \"test_agents.interview_agent\",\n  \"agent_class\": \"TestableInterviewAgent\",\n  \"llm_model\": \"gpt-4o-mini\",\n  \"agent_args\": {\n    \"candidate_name\": \"Alice\",\n    \"interview_prompt\": \"## Questions\\n1. Tell me about yourself\\n2. What is your experience with Python?\"\n  },\n  \"history\": [],\n  \"user_input\": \"Hello\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suites",
+      "item": [
+        {
+          "name": "List Suites",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/suites"
+          }
+        },
+        {
+          "name": "Get Suite",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/suites/{{suiteId}}"
+          }
+        },
+        {
+          "name": "Create Suite",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/suites",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Regression Suite\",\n  \"description\": \"Core scenarios that must pass on every change\",\n  \"scenario_ids\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Suite",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/suites/{{suiteId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Suite\",\n  \"scenario_ids\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Suite",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/suites/{{suiteId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Runs",
+      "item": [
+        {
+          "name": "List Runs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "runs"
+              ],
+              "query": [
+                {
+                  "key": "scenario_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "suite_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "agent_id",
+                  "value": "{{agentId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Run",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/runs/{{runId}}"
+          }
+        },
+        {
+          "name": "Create Run (Single Scenario)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/runs",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario_id\": \"{{scenarioId}}\",\n  \"config\": {}\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Suite Run",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/runs/suite",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suite_id\": \"{{suiteId}}\",\n  \"config\": {}\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Run",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/runs/{{runId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Failures",
+      "item": [
+        {
+          "name": "List Failures (Inbox)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/failures?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "failures"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "suite_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "scenario_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "agent_id",
+                  "value": "{{agentId}}",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

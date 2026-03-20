@@ -1,0 +1,182 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete as sa_delete, insert, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.database import get_db
+from app.api.auth import get_current_user
+from app.models.scenario import Scenario
+from app.models.suite import Suite, suite_scenarios
+from app.models.user import User
+from app.schemas.suite import SuiteCreate, SuiteListResponse, SuiteResponse, SuiteUpdate
+
+router = APIRouter()
+
+
+async def _load_suite_response(
+    suite_id: UUID,
+    current_user: User,
+    db: AsyncSession,
+) -> SuiteResponse:
+    from app.models.scenario import ScenarioTurn
+
+    result = await db.execute(
+        select(Suite)
+        .options(selectinload(Suite.scenarios).selectinload(Scenario.turns))
+        .where(Suite.id == suite_id, Suite.owner_user_id == current_user.id)
+    )
+    suite = result.scalar_one_or_none()
+    if not suite:
+        raise HTTPException(status_code=404, detail="Suite not found")
+
+    return SuiteResponse(
+        id=suite.id,
+        name=suite.name,
+        description=suite.description,
+        scenarios=[
+            {
+                "id": s.id,
+                "name": s.name,
+                "description": s.description,
+                "agent_id": s.agent_id,
+                "agent_module": s.agent_module,
+                "tags": s.tags,
+                "turn_count": len(s.turns),
+                "version": s.version,
+                "created_at": s.created_at,
+                "updated_at": s.updated_at,
+            }
+            for s in suite.scenarios
+        ],
+        created_at=suite.created_at,
+        updated_at=suite.updated_at,
+    )
+
+
+@router.get("", response_model=list[SuiteListResponse])
+async def list_suites(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Suite)
+        .options(selectinload(Suite.scenarios))
+        .where(Suite.owner_user_id == current_user.id)
+        .order_by(Suite.updated_at.desc())
+    )
+    suites = result.scalars().all()
+    return [
+        SuiteListResponse(
+            id=s.id,
+            name=s.name,
+            description=s.description,
+            scenario_count=len(s.scenarios),
+            created_at=s.created_at,
+            updated_at=s.updated_at,
+        )
+        for s in suites
+    ]
+
+
+@router.get("/{suite_id}", response_model=SuiteResponse)
+async def get_suite(
+    suite_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _load_suite_response(suite_id, current_user, db)
+
+
+@router.post("", response_model=SuiteResponse, status_code=201)
+async def create_suite(
+    data: SuiteCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    suite = Suite(name=data.name, description=data.description, owner_user_id=current_user.id)
+    db.add(suite)
+    await db.flush()
+
+    if data.scenario_ids:
+        # Ensure scenarios belong to the same user.
+        from app.models.scenario import Scenario
+        res = await db.execute(
+            select(Scenario.id).where(Scenario.id.in_(data.scenario_ids), Scenario.owner_user_id == current_user.id)
+        )
+        owned_ids = set(res.scalars().all())
+        missing = [sid for sid in data.scenario_ids if sid not in owned_ids]
+        if missing:
+            raise HTTPException(status_code=400, detail="Some scenario_ids are not owned by you")
+        await db.execute(
+            insert(suite_scenarios),
+            [
+                {"suite_id": suite.id, "scenario_id": sid}
+                for sid in data.scenario_ids
+            ],
+        )
+
+    await db.commit()
+    return await _load_suite_response(suite.id, current_user, db)
+
+
+@router.put("/{suite_id}", response_model=SuiteResponse)
+async def update_suite(
+    suite_id: UUID,
+    data: SuiteUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Suite).options(selectinload(Suite.scenarios)).where(Suite.id == suite_id)
+    )
+    suite = result.scalar_one_or_none()
+    if not suite:
+        raise HTTPException(status_code=404, detail="Suite not found")
+    if suite.owner_user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Suite not found")
+
+    if data.name is not None:
+        suite.name = data.name
+    if data.description is not None:
+        suite.description = data.description
+
+    if data.scenario_ids is not None:
+        from app.models.scenario import Scenario
+        if data.scenario_ids:
+            res = await db.execute(
+                select(Scenario.id).where(
+                    Scenario.id.in_(data.scenario_ids),
+                    Scenario.owner_user_id == current_user.id,
+                )
+            )
+            owned_ids = set(res.scalars().all())
+            missing = [sid for sid in data.scenario_ids if sid not in owned_ids]
+            if missing:
+                raise HTTPException(status_code=400, detail="Some scenario_ids are not owned by you")
+        await db.execute(
+            sa_delete(suite_scenarios).where(suite_scenarios.c.suite_id == suite_id)
+        )
+        if data.scenario_ids:
+            await db.execute(
+                insert(suite_scenarios),
+                [
+                    {"suite_id": suite_id, "scenario_id": sid}
+                    for sid in data.scenario_ids
+                ],
+            )
+
+    await db.commit()
+    return await _load_suite_response(suite_id, current_user, db)
+
+
+@router.delete("/{suite_id}", status_code=204)
+async def delete_suite(
+    suite_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Suite).where(Suite.id == suite_id, Suite.owner_user_id == current_user.id))
+    suite = result.scalar_one_or_none()
+    if not suite:
+        raise HTTPException(status_code=404, detail="Suite not found")
+    await db.delete(suite)
+    await db.commit()

@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, type RegressionAlert, type ScenarioListItem, type ScheduledRun, type SuiteListItem } from "@/lib/api";
-import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 import { Pencil, Plus, Search, Trash2 } from "@/lib/icons";
 import { TablePagination } from "@/components/table-pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AutomationPage() {
   const { setItems } = useBreadcrumbs();
@@ -21,6 +22,8 @@ export default function AutomationPage() {
   const [suites, setSuites] = useState<SuiteListItem[]>([]);
 
   const [search, setSearch] = useState("");
+  const [targetTypeFilter, setTargetTypeFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
   const [schedPage, setSchedPage] = useState(1);
   const [alertsPage, setAlertsPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -34,18 +37,41 @@ export default function AutomationPage() {
     [suites],
   );
   const filteredSchedules = useMemo(() => {
-    if (!search) return schedules;
-    const q = search.toLowerCase();
-    return schedules.filter((s) => {
-      const target = s.target_type === "scenario" ? scenarioNameById.get(s.scenario_id ?? "") : suiteNameById.get(s.suite_id ?? "");
-      return `${target ?? ""} ${s.target_type}`.toLowerCase().includes(q);
-    });
-  }, [schedules, search, scenarioNameById, suiteNameById]);
+    let result = schedules;
+    if (targetTypeFilter !== "all") {
+      result = result.filter((s) => s.target_type === targetTypeFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((s) => {
+        const target = s.target_type === "scenario" ? scenarioNameById.get(s.scenario_id ?? "") : suiteNameById.get(s.suite_id ?? "");
+        return `${target ?? ""} ${s.target_type}`.toLowerCase().includes(q);
+      });
+    }
+    if (dateFilter) {
+      result = result.filter((s) => {
+        const d = new Date(s.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    return result;
+  }, [schedules, search, scenarioNameById, suiteNameById, targetTypeFilter, dateFilter]);
   const filteredAlerts = useMemo(() => {
-    if (!search) return alerts;
-    const q = search.toLowerCase();
-    return alerts.filter((a) => `${a.title} ${a.detail ?? ""}`.toLowerCase().includes(q));
-  }, [alerts, search]);
+    let result = alerts;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((a) => `${a.title} ${a.detail ?? ""}`.toLowerCase().includes(q));
+    }
+    if (dateFilter) {
+      result = result.filter((a) => {
+        const d = new Date(a.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    return result;
+  }, [alerts, search, dateFilter]);
   const pagedSchedules = useMemo(() => paginate(filteredSchedules, schedPage, pageSize), [filteredSchedules, schedPage, pageSize]);
   const pagedAlerts = useMemo(() => paginate(filteredAlerts, alertsPage, pageSize), [filteredAlerts, alertsPage, pageSize]);
 
@@ -110,6 +136,47 @@ export default function AutomationPage() {
             className="pl-9"
           />
         </div>
+        <Select
+          value={targetTypeFilter}
+          onValueChange={(v) => {
+            setTargetTypeFilter(v ?? "all");
+            setSchedPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue className="sr-only" placeholder="Target type" />
+            <span className="line-clamp-1">
+              {targetTypeFilter === "all" ? "Target type: All" : `Target type: ${targetTypeFilter}`}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All target types</SelectItem>
+            <SelectItem value="scenario">Scenario</SelectItem>
+            <SelectItem value="suite">Suite</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => {
+            setDateFilter(e.target.value);
+            setSchedPage(1);
+            setAlertsPage(1);
+          }}
+          className="w-[180px]"
+        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSearch("");
+            setTargetTypeFilter("all");
+            setDateFilter("");
+            setSchedPage(1);
+            setAlertsPage(1);
+          }}
+        >
+          Clear filters
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -134,6 +201,7 @@ export default function AutomationPage() {
                   <TableHead>Target</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Every</TableHead>
+                  <TableHead>Created At</TableHead>
                   <TableHead>Next run</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
@@ -150,7 +218,8 @@ export default function AutomationPage() {
                       {s.target_type}
                     </TableCell>
                     <TableCell>{s.interval_minutes}m</TableCell>
-                    <TableCell>{formatDate(s.next_run_at)}</TableCell>
+                    <TableCell>{formatDateTime(s.created_at)}</TableCell>
+                    <TableCell>{formatDateTime(s.next_run_at)}</TableCell>
                     <TableCell className="text-right">
                       <Link href={`/automation/${s.id}/edit`}>
                         <Button variant="outline" size="sm" className="mr-2">
@@ -195,7 +264,7 @@ export default function AutomationPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Alert</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Date & Time</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -209,7 +278,7 @@ export default function AutomationPage() {
                         View run
                       </Link>
                     </TableCell>
-                    <TableCell>{formatDate(a.created_at)}</TableCell>
+                    <TableCell>{formatDateTime(a.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"

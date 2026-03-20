@@ -303,6 +303,39 @@ export interface SuiteListItem {
   updated_at: string;
 }
 
+export interface ScheduledRun {
+  id: string;
+  target_type: "scenario" | "suite";
+  scenario_id: string | null;
+  suite_id: string | null;
+  interval_minutes: number;
+  config: Record<string, unknown> | null;
+  is_active: boolean;
+  last_run_at: string | null;
+  next_run_at: string;
+  created_at: string;
+}
+
+export interface ScheduledRunCreate {
+  target_type: "scenario" | "suite";
+  scenario_id?: string;
+  suite_id?: string;
+  interval_minutes: number;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
+export interface RegressionAlert {
+  id: string;
+  scenario_id: string | null;
+  run_id: string;
+  previous_run_id: string | null;
+  title: string;
+  detail: string | null;
+  is_acknowledged: boolean;
+  created_at: string;
+}
+
 export const api = {
   auth: {
     me: () => request<AuthMe>("/api/auth/me"),
@@ -398,5 +431,21 @@ export const api = {
       const qs = searchParams.toString();
       return request<FailureInboxItem[]>(`/api/failures${qs ? `?${qs}` : ""}`);
     },
+  },
+  automation: {
+    listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),
+    createSchedule: (data: ScheduledRunCreate) =>
+      request<ScheduledRun>("/api/automation/schedules", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    deleteSchedule: (id: string) =>
+      request<void>(`/api/automation/schedules/${id}`, { method: "DELETE" }),
+    listAlerts: (acknowledged?: boolean) =>
+      request<RegressionAlert[]>(
+        `/api/automation/alerts${acknowledged == null ? "" : `?acknowledged=${String(acknowledged)}`}`,
+      ),
+    acknowledgeAlert: (id: string) =>
+      request<RegressionAlert>(`/api/automation/alerts/${id}/ack`, { method: "POST" }),
   },
 };

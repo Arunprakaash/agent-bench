@@ -21,6 +21,7 @@ import {
   Play,
   FolderOpen,
   FailureInbox,
+  Clock,
   Settings,
   User,
 } from "@/lib/icons";
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/suites", label: "Suites", icon: FolderOpen },
   { href: "/failures", label: "Failures", icon: FailureInbox },
   { href: "/runs", label: "Test Runs", icon: Play },
+  { href: "/automation", label: "Automation", icon: Clock },
 ];
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {

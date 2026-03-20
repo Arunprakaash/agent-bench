@@ -8,7 +8,6 @@ import {
   ClockCircleOutlined,
   CloseCircleFilled,
   CloseOutlined,
-  DashboardOutlined,
   ProductOutlined,
   DownOutlined,
   DeleteOutlined,

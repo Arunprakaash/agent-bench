@@ -31,6 +31,24 @@ Bearer token can be either:
 - `DELETE /api/auth/api-token`
 - `POST /api/auth/logout`
 
+## Agents
+
+- `GET /api/agents`
+- `GET /api/agents/{agent_id}`
+- `POST /api/agents`
+- `PUT /api/agents/{agent_id}`
+- `DELETE /api/agents/{agent_id}`
+- `GET /api/agents/{agent_id}/arg-schema`
+- `POST /api/agents/{agent_id}/connection-test`
+
+Connector fields on agent payload:
+
+- `provider_type`: currently supports `local_python` and `http_json`
+- `connection_config`: provider-specific JSON config
+  - `http_json` minimum: `{ "endpoint": "https://your-agent/run" }`
+  - optional: `method`, `headers`, `timeout_ms`, `payload`, `events_path`
+  - optional test config: `test_endpoint`, `test_method`, `test_payload`
+
 ## Scenarios
 
 - `GET /api/scenarios`

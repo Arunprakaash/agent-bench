@@ -26,6 +26,9 @@ This document defines the default UX patterns for list pages, forms, and app lay
 - Target pages should remain mostly within viewport height under typical data volume.
 - Avoid unbounded lists and large in-card scroll regions where pagination can solve it.
 - Related data sections on the same page (e.g. schedules + alerts) should each use independent pagination state.
+- Horizontal table scrolling is allowed when columns are information-dense.
+  - Prefer preserving key columns/labels over forcing aggressive truncation.
+  - Use the shared table container behavior for consistent horizontal scroll UX.
 
 ## 4) Non-Scrollable-By-Default Experience
 
@@ -47,6 +50,9 @@ This document defines the default UX patterns for list pages, forms, and app lay
   - icon placement aligned to select chevrons
   - avoid hidden/native click targets that conflict with custom icon trigger
 - Provide a `Clear filters` affordance on complex list pages.
+- If a new filter is introduced, show the corresponding data in table columns where applicable
+  (for example, `Created by` filter should have a visible `Created By` column).
+- Use full date-time values (not date-only) for operational/run-style tables unless there is a clear reason not to.
 
 ## 6) Forms
 

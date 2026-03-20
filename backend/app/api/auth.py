@@ -59,6 +59,25 @@ class UpdateMeRequest(BaseModel):
     avatar_url: str | None = None
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ApiTokenResponse(BaseModel):
+    token: str
+    prefix: str
+    last4: str
+    created_at: datetime
+
+
+class ApiTokenMetaResponse(BaseModel):
+    has_token: bool
+    prefix: str | None = None
+    last4: str | None = None
+    created_at: datetime | None = None
+
+
 def _create_token(user: User) -> str:
     now = datetime.utcnow()
     exp = now + timedelta(days=7)
@@ -118,6 +137,70 @@ async def update_me(data: UpdateMeRequest, db: AsyncSession = Depends(get_db), c
         "display_name": current_user.display_name,
         "avatar_url": current_user.avatar_url,
     }
+
+
+@router.post("/change-password", status_code=204)
+async def change_password(
+    data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    if not _verify_password(data.current_password, current_user.password_salt, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if not data.new_password or len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    if data.new_password == data.current_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    salt_b64 = _random_salt()
+    current_user.password_salt = salt_b64
+    current_user.password_hash = _hash_password(data.new_password, base64.b64decode(salt_b64.encode("ascii")))
+    await db.commit()
+    return None
+
+
+@router.get("/api-token", response_model=ApiTokenMetaResponse)
+async def get_api_token_meta(current_user: User = Depends(_get_current_user)):
+    return ApiTokenMetaResponse(
+        has_token=bool(current_user.api_token_hash),
+        prefix=current_user.api_token_prefix,
+        last4=current_user.api_token_last4,
+        created_at=current_user.api_token_created_at,
+    )
+
+
+@router.post("/api-token", response_model=ApiTokenResponse)
+async def create_api_token(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    raw = f"ab_{secrets.token_urlsafe(24)}"
+    token_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    current_user.api_token_hash = token_hash
+    current_user.api_token_prefix = raw[:7]
+    current_user.api_token_last4 = raw[-4:]
+    current_user.api_token_created_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(current_user)
+    return ApiTokenResponse(
+        token=raw,
+        prefix=current_user.api_token_prefix or raw[:7],
+        last4=current_user.api_token_last4 or raw[-4:],
+        created_at=current_user.api_token_created_at or datetime.utcnow(),
+    )
+
+
+@router.delete("/api-token", status_code=204)
+async def revoke_api_token(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    current_user.api_token_hash = None
+    current_user.api_token_prefix = None
+    current_user.api_token_last4 = None
+    current_user.api_token_created_at = None
+    await db.commit()
+    return None
 
 
 @router.post("/register")

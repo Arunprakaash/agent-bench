@@ -107,6 +107,10 @@ async def lifespan(app: FastAPI):
         )
         await conn.execute(text("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password_salt VARCHAR(255)"))
         await conn.execute(text("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)"))
+        await conn.execute(text("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS api_token_hash VARCHAR(255)"))
+        await conn.execute(text("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS api_token_prefix VARCHAR(64)"))
+        await conn.execute(text("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS api_token_last4 VARCHAR(4)"))
+        await conn.execute(text("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS api_token_created_at TIMESTAMPTZ"))
         await conn.execute(
             text(
                 """

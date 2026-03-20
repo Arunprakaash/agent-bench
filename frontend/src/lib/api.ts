@@ -294,6 +294,25 @@ export interface AuthMeUpdate {
   avatar_url?: string | null;
 }
 
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface ApiTokenMeta {
+  has_token: boolean;
+  prefix?: string | null;
+  last4?: string | null;
+  created_at?: string | null;
+}
+
+export interface ApiTokenCreateResponse {
+  token: string;
+  prefix: string;
+  last4: string;
+  created_at: string;
+}
+
 export interface Suite {
   id: string;
   name: string;
@@ -364,6 +383,11 @@ export const api = {
       request<AuthTokenResponse>("/api/auth/register", { method: "POST", body: JSON.stringify(data) }),
     login: (data: { email: string; password: string }) =>
       request<AuthTokenResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(data) }),
+    changePassword: (data: ChangePasswordRequest) =>
+      request<void>("/api/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
+    getApiTokenMeta: () => request<ApiTokenMeta>("/api/auth/api-token"),
+    createApiToken: () => request<ApiTokenCreateResponse>("/api/auth/api-token", { method: "POST" }),
+    revokeApiToken: () => request<void>("/api/auth/api-token", { method: "DELETE" }),
   },
   agents: {
     list: () => request<AgentListItem[]>("/api/agents"),

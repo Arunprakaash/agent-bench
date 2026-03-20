@@ -30,6 +30,7 @@ import {
 import { TablePagination } from "@/components/table-pagination";
 import {
   Play,
+  Pencil,
   FlaskConical,
   CheckCircle,
   XCircle,
@@ -263,6 +264,12 @@ export default function SuiteDetailPage() {
               {completedCount}/{totalCount}
             </span>
           )}
+          <Link href={`/suites/${suite.id}/edit`}>
+            <Button variant="outline" size="lg">
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </Link>
           <Button onClick={handleRunAll} disabled={running} size="lg">
             {running ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

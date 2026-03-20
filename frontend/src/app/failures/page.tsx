@@ -6,6 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getStatus, formatDate, formatDuration, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -23,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FailureInbox, Search } from "@/lib/icons";
+import { FailureInbox, Search, Trash2 } from "@/lib/icons";
 import { api, type FailureInboxItem } from "@/lib/api";
 
 const FOCUS_LINK =
@@ -63,6 +65,8 @@ function FailuresPageInner() {
   const [statusFilter, setStatusFilter] = useState(statusFromUrl);
   const [page, setPage] = useState(pageFromUrl);
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -109,6 +113,40 @@ function FailuresPageInner() {
   }, [items, search, statusFilter]);
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
+  const pagedIds = useMemo(() => paged.map((item) => item.run_id), [paged]);
+  const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => items.some((item) => item.run_id === id)));
+  }, [items]);
+
+  const toggleSelectAllPaged = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pagedIds])));
+      return;
+    }
+    setSelectedIds((prev) => prev.filter((id) => !pagedIds.includes(id)));
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0 || deleting) return;
+    const ok = window.confirm(
+      `Delete ${selectedIds.length} selected run${selectedIds.length === 1 ? "" : "s"} from failures? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeleting(true);
+    setLoadError(null);
+    try {
+      await Promise.all(selectedIds.map((id) => api.runs.delete(id)));
+      setItems((prev) => prev.filter((item) => !selectedIds.includes(item.run_id)));
+      setSelectedIds([]);
+    } catch (e) {
+      setLoadError((e as Error)?.message || "Failed to delete selected runs.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -179,6 +217,16 @@ function FailuresPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
+          <div className="flex justify-end gap-2 p-3 border-b">
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || deleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}
+            </Button>
+          </div>
           <TablePagination
             totalItems={filtered.length}
             page={page}
@@ -196,6 +244,13 @@ function FailuresPageInner() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[44px]">
+                  <Checkbox
+                    checked={allPagedSelected}
+                    onCheckedChange={toggleSelectAllPaged}
+                    aria-label="Select all visible failures"
+                  />
+                </TableHead>
                 <TableHead className="w-[130px]">Status</TableHead>
                 <TableHead>Scenario</TableHead>
                 <TableHead className="w-[90px] text-center">Turn</TableHead>
@@ -220,6 +275,17 @@ function FailuresPageInner() {
                   "";
                 return (
                   <TableRow key={it.run_id} className="group">
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(it.run_id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedIds((prev) =>
+                            checked ? Array.from(new Set([...prev, it.run_id])) : prev.filter((id) => id !== it.run_id),
+                          );
+                        }}
+                        aria-label={`Select failed run ${it.run_id}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Link href={href} className={`flex items-center ${FOCUS_LINK}`}>
                         <Badge variant="secondary" className={style.badgeClass}>

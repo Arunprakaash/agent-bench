@@ -106,7 +106,7 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
         # In-process lock + DB advisory lock so version allocation is serialized across workers.
         async with _lock_for_agent(scenario.agent_id):
             # Advisory lock held until commit; prevents duplicate (agent_id, version) from other workers.
-            key = int.from_bytes(scenario.agent_id.bytes[:8], "big")
+            key = int.from_bytes(scenario.agent_id.bytes[:8], "big", signed=True)
             await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": key})
             r = await db.execute(
                 select(func.coalesce(func.max(AgentVersion.version), 0)).where(

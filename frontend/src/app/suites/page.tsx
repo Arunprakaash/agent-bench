@@ -7,6 +7,7 @@ import { api, type SuiteListItem } from "@/lib/api";
 import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -17,7 +18,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/table-pagination";
-import { FolderOpen, Plus, Search } from "@/lib/icons";
+import { FolderOpen, Plus, Search, Trash2 } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -53,6 +54,8 @@ function SuitesPageInner() {
   const [search, setSearch] = useState(qFromUrl);
   const [page, setPage] = useState(pageFromUrl);
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -85,6 +88,8 @@ function SuitesPageInner() {
   }, [suites, search]);
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
+  const pagedIds = useMemo(() => paged.map((suite) => suite.id), [paged]);
+  const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.includes(id));
 
   const syncUrl = useCallback(
     (next: { q?: string; page?: number; pageSize?: number }) => {
@@ -102,6 +107,38 @@ function SuitesPageInner() {
     setSearch(v);
     setPage(1);
     syncUrl({ q: v, page: 1, pageSize });
+  };
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => suites.some((suite) => suite.id === id)));
+  }, [suites]);
+
+  const toggleSelectAllPaged = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pagedIds])));
+      return;
+    }
+    setSelectedIds((prev) => prev.filter((id) => !pagedIds.includes(id)));
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0 || deleting) return;
+    const ok = window.confirm(
+      `Delete ${selectedIds.length} selected suite${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeleting(true);
+    setLoadError(null);
+    try {
+      await Promise.all(selectedIds.map((id) => api.suites.delete(id)));
+      setSuites((prev) => prev.filter((suite) => !selectedIds.includes(suite.id)));
+      setSelectedIds([]);
+    } catch (e) {
+      setLoadError((e as Error).message || "Failed to delete selected suites.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -158,6 +195,16 @@ function SuitesPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
+          <div className="flex justify-end p-3 border-b">
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || deleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}
+            </Button>
+          </div>
           <TablePagination
             totalItems={filtered.length}
             page={page}
@@ -175,6 +222,13 @@ function SuitesPageInner() {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[44px]">
+                  <Checkbox
+                    checked={allPagedSelected}
+                    onCheckedChange={toggleSelectAllPaged}
+                    aria-label="Select all visible suites"
+                  />
+                </TableHead>
                 <TableHead className="w-[50%]">Name</TableHead>
                 <TableHead className="w-[100px] text-center">Scenarios</TableHead>
                 <TableHead className="w-[140px] text-right">Created</TableHead>
@@ -187,6 +241,17 @@ function SuitesPageInner() {
                   key={suite.id}
                   className="group"
                 >
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.includes(suite.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedIds((prev) =>
+                          checked ? Array.from(new Set([...prev, suite.id])) : prev.filter((id) => id !== suite.id),
+                        );
+                      }}
+                      aria-label={`Select suite ${suite.name}`}
+                    />
+                  </TableCell>
                   <TableCell className="max-w-full">
                     <Link
                       href={`/suites/${suite.id}`}

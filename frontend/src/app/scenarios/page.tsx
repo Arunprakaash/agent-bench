@@ -9,6 +9,7 @@ import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { api, type ScenarioCreate } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/table-pagination";
-import { Plus, FlaskConical, Search, Upload } from "@/lib/icons";
+import { Plus, FlaskConical, Search, Trash2, Upload } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -74,7 +75,10 @@ function ScenariosPageInner() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -120,6 +124,8 @@ function ScenariosPageInner() {
   }, [scenarios, search, tagFilter]);
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
+  const pagedIds = useMemo(() => paged.map((scenario) => scenario.id), [paged]);
+  const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.includes(id));
 
   const handleSearch = (v: string) => {
     setSearch(v);
@@ -131,6 +137,38 @@ function ScenariosPageInner() {
     setTagFilter(next);
     setPage(1);
     syncUrl({ q: search, tag: next, page: 1, pageSize });
+  };
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => scenarios.some((scenario) => scenario.id === id)));
+  }, [scenarios]);
+
+  const toggleSelectAllPaged = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pagedIds])));
+      return;
+    }
+    setSelectedIds((prev) => prev.filter((id) => !pagedIds.includes(id)));
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0 || deleting) return;
+    const ok = window.confirm(
+      `Delete ${selectedIds.length} selected scenario${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await Promise.all(selectedIds.map((id) => api.scenarios.delete(id)));
+      setSelectedIds([]);
+      await fetchScenarios();
+    } catch (e) {
+      setActionError((e as Error).message || "Failed to delete selected scenarios.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -249,6 +287,11 @@ function ScenariosPageInner() {
           </Select>
         )}
       </div>
+      {actionError && (
+        <div className="border border-destructive/20 bg-destructive/5 text-destructive rounded-lg p-4 text-sm">
+          {actionError}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -276,6 +319,16 @@ function ScenariosPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
+          <div className="flex justify-end p-3 border-b">
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || deleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}
+            </Button>
+          </div>
           <TablePagination
             totalItems={filtered.length}
             page={page}
@@ -293,6 +346,13 @@ function ScenariosPageInner() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[44px]">
+                  <Checkbox
+                    checked={allPagedSelected}
+                    onCheckedChange={toggleSelectAllPaged}
+                    aria-label="Select all visible scenarios"
+                  />
+                </TableHead>
                 <TableHead className="w-[40%]">Name</TableHead>
                 <TableHead>Agent</TableHead>
                 <TableHead className="w-[80px] text-center">Turns</TableHead>
@@ -306,6 +366,19 @@ function ScenariosPageInner() {
                   key={scenario.id}
                   className="group"
                 >
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.includes(scenario.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedIds((prev) =>
+                          checked
+                            ? Array.from(new Set([...prev, scenario.id]))
+                            : prev.filter((id) => id !== scenario.id),
+                        );
+                      }}
+                      aria-label={`Select scenario ${scenario.name}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Link
                       href={`/scenarios/${scenario.id}`}

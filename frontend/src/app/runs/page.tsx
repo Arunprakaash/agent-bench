@@ -7,6 +7,8 @@ import { useStore } from "@/lib/store";
 import { getStatus, formatDuration, formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -24,7 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/table-pagination";
-import { Play, Search } from "@/lib/icons";
+import { Play, Search, Trash2 } from "@/lib/icons";
+import { api } from "@/lib/api";
 
 export default function RunsPage() {
   return (
@@ -57,6 +60,9 @@ function RunsPageInner() {
   const [search, setSearch] = useState(qFromUrl);
   const [page, setPage] = useState(pageFromUrl);
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     setStatusFilter(statusFromUrl);
@@ -96,6 +102,40 @@ function RunsPageInner() {
   }, [runs, search]);
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
+  const pagedIds = useMemo(() => paged.map((run) => run.id), [paged]);
+  const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => runs.some((run) => run.id === id)));
+  }, [runs]);
+
+  const toggleSelectAllPaged = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pagedIds])));
+      return;
+    }
+    setSelectedIds((prev) => prev.filter((id) => !pagedIds.includes(id)));
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0 || deleting) return;
+    const ok = window.confirm(
+      `Delete ${selectedIds.length} selected run${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await Promise.all(selectedIds.map((id) => api.runs.delete(id)));
+      setSelectedIds([]);
+      load();
+    } catch (e) {
+      setActionError((e as Error).message || "Failed to delete selected runs.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -141,6 +181,11 @@ function RunsPageInner() {
           </SelectContent>
         </Select>
       </div>
+      {actionError && (
+        <div className="border border-destructive/20 bg-destructive/5 text-destructive rounded-lg p-4 text-sm">
+          {actionError}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -156,6 +201,16 @@ function RunsPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
+          <div className="flex justify-end p-3 border-b">
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || deleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}
+            </Button>
+          </div>
           <TablePagination
             totalItems={filtered.length}
             page={page}
@@ -173,6 +228,13 @@ function RunsPageInner() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[44px]">
+                  <Checkbox
+                    checked={allPagedSelected}
+                    onCheckedChange={toggleSelectAllPaged}
+                    aria-label="Select all visible test runs"
+                  />
+                </TableHead>
                 <TableHead className="w-[130px]">Status</TableHead>
                 <TableHead>Scenario</TableHead>
                 <TableHead className="w-[100px] text-center">Turns</TableHead>
@@ -189,6 +251,17 @@ function RunsPageInner() {
                     key={run.id}
                     className="group"
                   >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(run.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedIds((prev) =>
+                            checked ? Array.from(new Set([...prev, run.id])) : prev.filter((id) => id !== run.id),
+                          );
+                        }}
+                        aria-label={`Select run ${run.id}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Link
                         href={href}

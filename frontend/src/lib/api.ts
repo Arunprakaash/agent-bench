@@ -458,6 +458,8 @@ export const api = {
       request<ScenarioExportResponse>(`/api/scenarios/${id}/export`),
     versions: (id: string) =>
       request<ScenarioVersionListItem[]>(`/api/scenarios/${id}/versions`),
+    restoreVersion: (id: string, version: number) =>
+      request<Scenario>(`/api/scenarios/${id}/versions/${version}/restore`, { method: "POST" }),
     import: (data: ScenarioCreate) =>
       request<Scenario>("/api/scenarios/import", {
         method: "POST",

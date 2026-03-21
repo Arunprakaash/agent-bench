@@ -11,13 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Menu } from "@base-ui/react/menu";
 import {
   Table,
   TableHeader,
@@ -51,9 +45,9 @@ export default function ScenarioDetailPage() {
   const [editing, setEditing] = useState(false);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [versionsOpen, setVersionsOpen] = useState(false);
   const [versions, setVersions] = useState<Array<{ version: number; created_at: string }>>([]);
   const [exporting, setExporting] = useState(false);
+  const [restoringVersion, setRestoringVersion] = useState<number | null>(null);
   const { setItems } = useBreadcrumbs();
 
   const statusFromUrl = getParam(searchParams, "history_status") ?? "all";
@@ -110,6 +104,20 @@ export default function ScenarioDetailPage() {
       router.push("/scenarios");
     } catch (e) {
       alert(`Failed to delete: ${(e as Error).message}`);
+    }
+  };
+
+  const handleRestore = async (version: number) => {
+    if (!scenario || !confirm(`Restore to v${version}? This will create a new version with the restored content.`)) return;
+    setRestoringVersion(version);
+    try {
+      const restored = await api.scenarios.restoreVersion(scenario.id, version);
+      setScenario(restored);
+      api.scenarios.versions(scenario.id).then(setVersions).catch(() => {});
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setRestoringVersion(null);
     }
   };
 
@@ -208,43 +216,48 @@ export default function ScenarioDetailPage() {
             {exporting ? "Exporting…" : "Export JSON"}
           </Button>
 
-          <Dialog open={versionsOpen} onOpenChange={setVersionsOpen}>
-            <DialogTrigger render={<Button variant="outline" />}>
-              <History className="mr-2 h-4 w-4" />
-              Versions ({scenario.version})
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Scenario versions</DialogTitle>
-              </DialogHeader>
-              <div className="mt-2 space-y-2">
-                {versions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No versions recorded yet.</p>
-                ) : (
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Version</TableHead>
-                          <TableHead className="text-right">Created</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {versions.map((v) => (
-                          <TableRow key={v.version}>
-                            <TableCell className="font-medium tabular-nums">v{v.version}</TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              {formatDate(v.created_at)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Menu.Root>
+            <Menu.Trigger
+              render={
+                <Button variant="outline" className="min-w-52">
+                  <History className="mr-2 h-4 w-4" />
+                  Versions ({scenario.version})
+                </Button>
+              }
+            />
+            <Menu.Portal>
+              <Menu.Positioner side="bottom" align="end" sideOffset={4}>
+                <Menu.Popup className="z-50 w-(--anchor-width) max-h-72 overflow-y-auto overflow-x-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 origin-(--transform-origin) data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Version history</div>
+                  <Menu.Separator className="-mx-1 my-1 h-px bg-border" />
+                  {versions.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No versions yet.</div>
+                  ) : (
+                    versions.map((v) => {
+                      const isCurrent = v.version === scenario.version;
+                      const isRestoring = restoringVersion === v.version;
+                      return (
+                        <Menu.Item
+                          key={v.version}
+                          disabled={isCurrent || restoringVersion !== null}
+                          onClick={() => !isCurrent && handleRestore(v.version)}
+                          className="flex cursor-default items-center justify-between gap-4 rounded-md px-2 py-1.5 text-sm outline-none select-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50"
+                        >
+                          <span className="tabular-nums font-medium">
+                            v{v.version}
+                            {isCurrent && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(current)</span>}
+                          </span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                            {isRestoring ? "Restoring…" : formatDate(v.created_at)}
+                          </span>
+                        </Menu.Item>
+                      );
+                    })
+                  )}
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
 
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="mr-2 h-4 w-4" />

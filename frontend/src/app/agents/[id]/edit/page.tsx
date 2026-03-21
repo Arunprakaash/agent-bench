@@ -473,13 +473,10 @@ export default function EditAgentPage() {
             Update agent entrypoint and defaults.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/agents/${id}`}
-            className="text-sm text-muted-foreground hover:text-foreground mr-2"
-          >
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => router.push(`/agents/${id}`)} disabled={submitting}>
             Cancel
-          </Link>
+          </Button>
           <Button
             type="button"
             variant="outline"

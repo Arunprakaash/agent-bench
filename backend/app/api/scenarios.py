@@ -17,6 +17,7 @@ from app.schemas.scenario import (
     ScenarioRevisionListItem,
     ScenarioResponse,
     ScenarioUpdate,
+    TurnBase,
 )
 
 router = APIRouter()
@@ -296,6 +297,44 @@ async def list_versions(
     )
     revs = result.scalars().all()
     return [ScenarioRevisionListItem(version=r.version, created_at=r.created_at) for r in revs]
+
+
+@router.post("/{scenario_id}/versions/{version}/restore", response_model=ScenarioResponse)
+async def restore_version(
+    scenario_id: UUID,
+    version: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    rev_result = await db.execute(
+        select(ScenarioRevision).where(
+            ScenarioRevision.scenario_id == scenario_id,
+            ScenarioRevision.version == version,
+        )
+    )
+    revision = rev_result.scalar_one_or_none()
+    if not revision:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    snap = revision.snapshot
+    turns_data = [
+        TurnBase(user_input=t["user_input"], expectations=t.get("expectations", []))
+        for t in (snap.get("turns") or [])
+    ]
+    update_data = ScenarioUpdate(
+        name=snap.get("name"),
+        description=snap.get("description"),
+        agent_module=snap.get("agent_module"),
+        agent_class=snap.get("agent_class"),
+        llm_model=snap.get("llm_model"),
+        judge_model=snap.get("judge_model"),
+        agent_args=snap.get("agent_args"),
+        chat_history=snap.get("chat_history"),
+        mock_tools=snap.get("mock_tools"),
+        tags=snap.get("tags"),
+        turns=turns_data,
+    )
+    return await update_scenario(scenario_id, update_data, current_user, db)
 
 
 @router.post("/import", response_model=ScenarioResponse, status_code=201)

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, type AgentCreate } from "@/lib/api";
 import { AGENT_MODEL_OPTIONS } from "@/lib/agent-models";
@@ -414,13 +413,10 @@ export default function NewAgentPage() {
             Builder.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/agents"
-            className="text-sm text-muted-foreground hover:text-foreground mr-2"
-          >
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => router.push("/agents")} disabled={submitting}>
             Cancel
-          </Link>
+          </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Creating…" : "Create Agent"}
           </Button>

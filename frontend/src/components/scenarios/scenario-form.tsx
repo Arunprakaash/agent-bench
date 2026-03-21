@@ -322,6 +322,26 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {initial ? "Edit Scenario" : "New Scenario"}
+          </h1>
+          {!initial && (
+            <p className="text-muted-foreground mt-1">
+              Define conversation turns and expected agent behavior
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.back()} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={saving || !name || !agentId}>
+            {saving ? "Saving…" : initial ? "Save Changes" : "Create Scenario"}
+          </Button>
+        </div>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Scenario Details</CardTitle>
@@ -576,14 +596,6 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
         ))}
       </div>
 
-      <div className="flex justify-end gap-3 pb-8">
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} disabled={saving || !name || !agentId}>
-          {saving ? "Saving..." : initial ? "Update Scenario" : "Create Scenario"}
-        </Button>
-      </div>
     </div>
   );
 }

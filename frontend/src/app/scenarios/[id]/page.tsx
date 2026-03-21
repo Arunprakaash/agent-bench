@@ -183,10 +183,7 @@ export default function ScenarioDetailPage() {
 
   if (editing) {
     return (
-      <div className="p-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Edit Scenario</h1>
-        </div>
+      <div className="p-8 space-y-6">
         <ScenarioForm initial={scenario} />
       </div>
     );

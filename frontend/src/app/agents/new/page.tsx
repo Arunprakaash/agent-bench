@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "@/lib/icons";
+import { useWorkspace } from "@/lib/workspace-context";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 
 /** Suggested default args when module/class is the interview agent (pre-filled so "default args" are visible by default). */
@@ -328,6 +329,7 @@ function parseJsonObject(name: string, text: string): Record<string, unknown> {
 export default function NewAgentPage() {
   const router = useRouter();
   const { setItems } = useBreadcrumbs();
+  const { activeWorkspaceId } = useWorkspace();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -390,6 +392,7 @@ export default function NewAgentPage() {
       default_agent_args: Object.keys(default_agent_args).length
         ? default_agent_args
         : {},
+      workspace_id: activeWorkspaceId ?? undefined,
     };
 
     setSubmitting(true);

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import async_session, get_db
+from app.api.access import get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.models.scenario import Scenario
 from app.models.suite import Suite
@@ -25,15 +26,17 @@ async def list_runs(
     suite_id: UUID | None = None,
     agent_id: UUID | None = None,
     status: RunStatus | None = None,
+    workspace_id: UUID | None = None,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     query = (
         select(TestRun, User.display_name, User.email)
         .outerjoin(User, User.id == TestRun.owner_user_id)
         .options(selectinload(TestRun.scenario), selectinload(TestRun.turn_results))
-        .where(TestRun.owner_user_id == current_user.id)
+        .where(ownership_filter(TestRun, current_user.id, wids))
         .order_by(TestRun.created_at.desc())
         .limit(limit)
     )
@@ -45,6 +48,8 @@ async def list_runs(
         query = query.where(TestRun.agent_id == agent_id)
     if status:
         query = query.where(TestRun.status == status)
+    if workspace_id:
+        query = query.where(TestRun.workspace_id == workspace_id)
 
     result = await db.execute(query)
     rows = result.all()
@@ -71,13 +76,14 @@ async def list_runs(
 
 @router.get("/{run_id}", response_model=TestRunResponse)
 async def get_run(run_id: UUID, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(TestRun)
         .options(
             selectinload(TestRun.turn_results),
             selectinload(TestRun.run_evaluation),
         )
-        .where(TestRun.id == run_id, TestRun.owner_user_id == current_user.id)
+        .where(TestRun.id == run_id, ownership_filter(TestRun, current_user.id, wids))
     )
     run = result.scalar_one_or_none()
     if not run:
@@ -91,10 +97,11 @@ async def create_run(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Scenario)
         .options(selectinload(Scenario.turns))
-        .where(Scenario.id == data.scenario_id, Scenario.owner_user_id == current_user.id)
+        .where(Scenario.id == data.scenario_id, ownership_filter(Scenario, current_user.id, wids))
     )
     scenario = result.scalar_one_or_none()
     if not scenario:
@@ -105,6 +112,7 @@ async def create_run(
         suite_id=None,
         agent_id=scenario.agent_id,
         owner_user_id=current_user.id,
+        workspace_id=scenario.workspace_id,
         status=RunStatus.PENDING,
         config=data.config,
     )
@@ -126,10 +134,11 @@ async def create_suite_run(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Suite)
         .options(selectinload(Suite.scenarios).selectinload(Scenario.turns))
-        .where(Suite.id == data.suite_id, Suite.owner_user_id == current_user.id)
+        .where(Suite.id == data.suite_id, ownership_filter(Suite, current_user.id, wids))
     )
     suite = result.scalar_one_or_none()
     if not suite:
@@ -142,6 +151,7 @@ async def create_suite_run(
             suite_id=suite.id,
             agent_id=scenario.agent_id,
             owner_user_id=current_user.id,
+            workspace_id=scenario.workspace_id or suite.workspace_id,
             status=RunStatus.PENDING,
             config=data.config,
         )

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.api.access import assert_workspace_member, get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.models.scenario import Scenario
 from app.models.suite import Suite, suite_scenarios
@@ -25,7 +26,7 @@ async def _load_suite_response(
     result = await db.execute(
         select(Suite)
         .options(selectinload(Suite.scenarios).selectinload(Scenario.turns))
-        .where(Suite.id == suite_id, Suite.owner_user_id == current_user.id)
+        .where(Suite.id == suite_id)
     )
     suite = result.scalar_one_or_none()
     if not suite:
@@ -56,13 +57,21 @@ async def _load_suite_response(
 
 
 @router.get("", response_model=list[SuiteListResponse])
-async def list_suites(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
+async def list_suites(
+    workspace_id: UUID | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    wids = await get_user_workspace_ids(current_user.id, db)
+    query = (
         select(Suite)
         .options(selectinload(Suite.scenarios))
-        .where(Suite.owner_user_id == current_user.id)
+        .where(ownership_filter(Suite, current_user.id, wids))
         .order_by(Suite.updated_at.desc())
     )
+    if workspace_id:
+        query = query.where(Suite.workspace_id == workspace_id)
+    result = await db.execute(query)
     suites = result.scalars().all()
     return [
         SuiteListResponse(
@@ -73,6 +82,7 @@ async def list_suites(current_user: User = Depends(get_current_user), db: AsyncS
             scenario_ids=[sc.id for sc in s.scenarios],
             owner_user_id=s.owner_user_id,
             owner_display_name=current_user.display_name or current_user.email,
+            workspace_id=s.workspace_id,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
@@ -86,6 +96,15 @@ async def get_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Allow workspace members to fetch a suite they can see.
+    wids = await get_user_workspace_ids(current_user.id, db)
+    result = await db.execute(
+        select(Suite)
+        .options(selectinload(Suite.scenarios))
+        .where(Suite.id == suite_id, ownership_filter(Suite, current_user.id, wids))
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Suite not found")
     return await _load_suite_response(suite_id, current_user, db)
 
 
@@ -95,20 +114,23 @@ async def create_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    suite = Suite(name=data.name, description=data.description, owner_user_id=current_user.id)
+    if data.workspace_id:
+        await assert_workspace_member(data.workspace_id, current_user.id, db)
+
+    suite = Suite(name=data.name, description=data.description, owner_user_id=current_user.id, workspace_id=data.workspace_id)
     db.add(suite)
     await db.flush()
 
     if data.scenario_ids:
-        # Ensure scenarios belong to the same user.
         from app.models.scenario import Scenario
+        wids = await get_user_workspace_ids(current_user.id, db)
         res = await db.execute(
-            select(Scenario.id).where(Scenario.id.in_(data.scenario_ids), Scenario.owner_user_id == current_user.id)
+            select(Scenario.id).where(Scenario.id.in_(data.scenario_ids), ownership_filter(Scenario, current_user.id, wids))
         )
         owned_ids = set(res.scalars().all())
         missing = [sid for sid in data.scenario_ids if sid not in owned_ids]
         if missing:
-            raise HTTPException(status_code=400, detail="Some scenario_ids are not owned by you")
+            raise HTTPException(status_code=400, detail="Some scenario_ids are not accessible to you")
         await db.execute(
             insert(suite_scenarios),
             [
@@ -128,13 +150,12 @@ async def update_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
-        select(Suite).options(selectinload(Suite.scenarios)).where(Suite.id == suite_id)
+        select(Suite).options(selectinload(Suite.scenarios)).where(Suite.id == suite_id, ownership_filter(Suite, current_user.id, wids))
     )
     suite = result.scalar_one_or_none()
     if not suite:
-        raise HTTPException(status_code=404, detail="Suite not found")
-    if suite.owner_user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Suite not found")
 
     if data.name is not None:
@@ -145,16 +166,17 @@ async def update_suite(
     if data.scenario_ids is not None:
         from app.models.scenario import Scenario
         if data.scenario_ids:
+            wids = await get_user_workspace_ids(current_user.id, db)
             res = await db.execute(
                 select(Scenario.id).where(
                     Scenario.id.in_(data.scenario_ids),
-                    Scenario.owner_user_id == current_user.id,
+                    ownership_filter(Scenario, current_user.id, wids),
                 )
             )
             owned_ids = set(res.scalars().all())
             missing = [sid for sid in data.scenario_ids if sid not in owned_ids]
             if missing:
-                raise HTTPException(status_code=400, detail="Some scenario_ids are not owned by you")
+                raise HTTPException(status_code=400, detail="Some scenario_ids are not accessible to you")
         await db.execute(
             sa_delete(suite_scenarios).where(suite_scenarios.c.suite_id == suite_id)
         )
@@ -177,6 +199,7 @@ async def delete_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Delete is owner-only even for workspace suites.
     result = await db.execute(select(Suite).where(Suite.id == suite_id, Suite.owner_user_id == current_user.id))
     suite = result.scalar_one_or_none()
     if not suite:

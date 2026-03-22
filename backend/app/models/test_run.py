@@ -27,6 +27,9 @@ class TestRun(Base):
         nullable=True,
         index=True,
     )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     scenario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("scenarios.id", ondelete="CASCADE"), nullable=False
     )

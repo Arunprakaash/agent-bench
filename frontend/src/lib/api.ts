@@ -139,6 +139,7 @@ export interface AgentCreate {
   default_judge_model?: string;
   default_agent_args?: Record<string, unknown> | null;
   tags?: string[];
+  workspace_id?: string | null;
 }
 
 export interface AgentConnectionTestResponse {
@@ -183,6 +184,7 @@ export interface ScenarioCreate {
   mock_tools?: Record<string, unknown>;
   tags?: string[];
   turns: Turn[];
+  workspace_id?: string | null;
 }
 
 export interface ActualEvent {
@@ -389,6 +391,50 @@ export interface RegressionAlert {
   created_at: string;
 }
 
+export interface WorkspaceMemberResponse {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  role: string;
+  joined_at: string;
+}
+
+export interface WorkspaceListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  my_role: string;
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_user_id: string | null;
+  my_role: string;
+  members: WorkspaceMemberResponse[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceCreate {
+  name: string;
+  description?: string | null;
+}
+
+export interface WorkspaceUpdate {
+  name?: string;
+  description?: string | null;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role?: string;
+}
+
 export const api = {
   auth: {
     me: () => request<AuthMe>("/api/auth/me"),
@@ -398,6 +444,8 @@ export const api = {
         body: JSON.stringify(data),
       }),
     logout: () => request<void>("/api/auth/logout", { method: "POST" }),
+    checkEmail: (email: string) =>
+      request<{ exists: boolean }>(`/api/auth/check-email?email=${encodeURIComponent(email)}`),
     register: (data: {
       email: string;
       password: string;
@@ -426,7 +474,10 @@ export const api = {
       request<void>("/api/auth/api-token", { method: "DELETE" }),
   },
   agents: {
-    list: () => request<AgentListItem[]>("/api/agents"),
+    list: (workspaceId?: string | null) => {
+      const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+      return request<AgentListItem[]>(`/api/agents${qs}`);
+    },
     get: (id: string) => request<Agent>(`/api/agents/${id}`),
     getArgSchema: (id: string) =>
       request<{ arg_schema: ArgSchemaField[] | null }>(
@@ -451,8 +502,13 @@ export const api = {
       request<void>(`/api/agents/${id}`, { method: "DELETE" }),
   },
   scenarios: {
-    list: (tag?: string) =>
-      request<ScenarioListItem[]>(`/api/scenarios${tag ? `?tag=${tag}` : ""}`),
+    list: (tag?: string, workspaceId?: string | null) => {
+      const params = new URLSearchParams();
+      if (tag) params.set("tag", tag);
+      if (workspaceId) params.set("workspace_id", workspaceId);
+      const qs = params.toString();
+      return request<ScenarioListItem[]>(`/api/scenarios${qs ? `?${qs}` : ""}`);
+    },
     get: (id: string) => request<Scenario>(`/api/scenarios/${id}`),
     export: (id: string) =>
       request<ScenarioExportResponse>(`/api/scenarios/${id}/export`),
@@ -479,12 +535,16 @@ export const api = {
       request<void>(`/api/scenarios/${id}`, { method: "DELETE" }),
   },
   suites: {
-    list: () => request<SuiteListItem[]>("/api/suites"),
+    list: (workspaceId?: string | null) => {
+      const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+      return request<SuiteListItem[]>(`/api/suites${qs}`);
+    },
     get: (id: string) => request<Suite>(`/api/suites/${id}`),
     create: (data: {
       name: string;
       description?: string;
       scenario_ids?: string[];
+      workspace_id?: string | null;
     }) =>
       request<Suite>("/api/suites", {
         method: "POST",
@@ -508,6 +568,7 @@ export const api = {
       agent_id?: string;
       status?: string;
       limit?: number;
+      workspace_id?: string | null;
     }) => {
       const searchParams = new URLSearchParams();
       if (params?.scenario_id)
@@ -516,6 +577,7 @@ export const api = {
       if (params?.agent_id) searchParams.set("agent_id", params.agent_id);
       if (params?.status) searchParams.set("status", params.status);
       if (params?.limit) searchParams.set("limit", String(params.limit));
+      if (params?.workspace_id) searchParams.set("workspace_id", params.workspace_id);
       const qs = searchParams.toString();
       return request<TestRunListItem[]>(`/api/runs${qs ? `?${qs}` : ""}`);
     },
@@ -557,6 +619,57 @@ export const api = {
       const qs = searchParams.toString();
       return request<FailureInboxItem[]>(`/api/failures${qs ? `?${qs}` : ""}`);
     },
+  },
+  workspaces: {
+    list: () => request<WorkspaceListItem[]>("/api/workspaces"),
+    get: (id: string) => request<WorkspaceResponse>(`/api/workspaces/${id}`),
+    create: (data: WorkspaceCreate) =>
+      request<WorkspaceResponse>("/api/workspaces", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: WorkspaceUpdate) =>
+      request<WorkspaceResponse>(`/api/workspaces/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      request<void>(`/api/workspaces/${id}`, { method: "DELETE" }),
+    listMembers: (id: string) =>
+      request<WorkspaceMemberResponse[]>(`/api/workspaces/${id}/members`),
+    inviteMember: (id: string, data: InviteMemberRequest) =>
+      request<WorkspaceMemberResponse>(`/api/workspaces/${id}/members`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    removeMember: (id: string, userId: string) =>
+      request<void>(`/api/workspaces/${id}/members/${userId}`, {
+        method: "DELETE",
+      }),
+    updateMemberRole: (id: string, userId: string, role: string) =>
+      request<WorkspaceMemberResponse>(`/api/workspaces/${id}/members/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      }),
+    createInvite: (id: string, data: { email: string; role?: string }) =>
+      request<{ token: string; invite_url: string; email_sent: boolean }>(`/api/workspaces/${id}/invites`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    listInvites: (id: string) =>
+      request<{ token: string; role: string; invited_email: string | null; invite_url: string; created_at: string; expires_at: string | null; expired: boolean }[]>(
+        `/api/workspaces/${id}/invites`
+      ),
+    revokeInvite: (id: string, token: string) =>
+      request<void>(`/api/workspaces/${id}/invites/${token}`, { method: "DELETE" }),
+  },
+  invites: {
+    getInfo: (token: string) =>
+      request<{ token: string; workspace_id: string; workspace_name: string; role: string; expires_at: string | null }>(
+        `/api/invites/${token}`
+      ),
+    accept: (token: string) =>
+      request<{ workspace_id: string; already_member: boolean }>(`/api/invites/${token}/accept`, { method: "POST" }),
   },
   automation: {
     listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),

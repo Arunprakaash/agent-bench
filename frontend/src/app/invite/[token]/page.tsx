@@ -1,0 +1,159 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { getAuthToken } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+
+interface InviteInfo {
+  token: string;
+  workspace_id: string;
+  workspace_name: string;
+  role: string;
+  expires_at: string | null;
+  invited_email: string | null;
+}
+
+export default function InvitePage() {
+  const { token } = useParams<{ token: string }>();
+  const router = useRouter();
+
+  const [info, setInfo] = useState<InviteInfo | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [accepting, setAccepting] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.invites
+      .getInfo(token)
+      .then(setInfo)
+      .catch((e) =>
+        setLoadError((e as Error).message || "Invalid or expired invite link."),
+      );
+    if (getAuthToken()) {
+      api.auth.me().then((u) => setCurrentUserEmail(u.email)).catch(() => {});
+    }
+  }, [token]);
+
+  const redirectToAuth = async (email: string | null) => {
+    const params = new URLSearchParams({ next: `/invite/${token}` });
+    if (email) {
+      params.set("email", email);
+      try {
+        const { exists } = await api.auth.checkEmail(email);
+        params.set("mode", exists ? "login" : "signup");
+      } catch {
+        params.set("mode", "signup");
+      }
+    } else {
+      params.set("mode", "login");
+    }
+    router.push(`/auth?${params.toString()}`);
+  };
+
+  const handleAccept = async () => {
+    const isLoggedIn = !!getAuthToken();
+    const invitedEmail = info?.invited_email ?? null;
+
+    // If logged in but as the wrong user, force them to auth as the invited email
+    if (isLoggedIn && invitedEmail && currentUserEmail !== invitedEmail) {
+      await redirectToAuth(invitedEmail);
+      return;
+    }
+
+    // Not logged in at all
+    if (!isLoggedIn) {
+      await redirectToAuth(invitedEmail);
+      return;
+    }
+
+    setAccepting(true);
+    setAcceptError(null);
+    try {
+      const result = await api.invites.accept(token);
+      router.replace(`/?workspace=${result.workspace_id}`);
+    } catch (e) {
+      setAcceptError((e as Error).message || "Failed to accept invite.");
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/20 px-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 mb-2">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-6 w-6"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <circle cx="6.5" cy="6.5" r="2.7" fill="currentColor" />
+              <circle cx="17.5" cy="6.5" r="2.7" fill="currentColor" />
+              <circle cx="12" cy="17.5" r="2.7" fill="currentColor" />
+              <path
+                d="M8.5 8.2L10.5 12.2M15.5 8.2L13.5 12.2M9.8 15.4H14.2"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {info ? `Join ${info.workspace_name} on Bench` : "You've been invited to Bench"}
+          </h1>
+        </div>
+
+        <div className="bg-background rounded-xl border p-6 shadow-sm space-y-5">
+          {loadError ? (
+            <p className="text-sm text-destructive text-center">{loadError}</p>
+          ) : !info ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <>
+              <div className="text-center space-y-1">
+                {info.invited_email && (
+                  <p className="text-sm font-medium">{info.invited_email}</p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  You’ve been invited as a {info.role}
+                </p>
+              </div>
+
+              {currentUserEmail && info.invited_email && currentUserEmail !== info.invited_email && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                  You’re signed in as <strong>{currentUserEmail}</strong>. This invite is for <strong>{info.invited_email}</strong> — you’ll be asked to sign in or create an account with that email.
+                </div>
+              )}
+
+              {acceptError && (
+                <p className="text-sm text-destructive text-center">
+                  {acceptError}
+                </p>
+              )}
+
+              <Button
+                className="w-full"
+                onClick={() => void handleAccept()}
+                disabled={accepting}
+              >
+                {accepting
+                  ? "Joining…"
+                  : !getAuthToken() || (info.invited_email && currentUserEmail !== info.invited_email)
+                    ? "Sign in to accept"
+                    : "Accept invitation"}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

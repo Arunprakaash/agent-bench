@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.api.access import assert_workspace_member, get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.models.user import User
 from app.models.agent import Agent
@@ -72,16 +73,20 @@ def _scenario_snapshot_from_create(data: ScenarioCreate) -> dict:
 async def list_scenarios(
     current_user: User = Depends(get_current_user),
     tag: str | None = None,
+    workspace_id: UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     query = (
         select(Scenario)
         .options(selectinload(Scenario.turns))
-        .where(Scenario.owner_user_id == current_user.id)
+        .where(ownership_filter(Scenario, current_user.id, wids))
         .order_by(Scenario.updated_at.desc())
     )
     if tag:
         query = query.where(Scenario.tags.contains([tag]))
+    if workspace_id:
+        query = query.where(Scenario.workspace_id == workspace_id)
     result = await db.execute(query)
     scenarios = result.scalars().all()
     return [
@@ -96,6 +101,7 @@ async def list_scenarios(
             version=s.version,
             owner_user_id=s.owner_user_id,
             owner_display_name=current_user.display_name or current_user.email,
+            workspace_id=s.workspace_id,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
@@ -109,10 +115,11 @@ async def get_scenario(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Scenario)
         .options(selectinload(Scenario.turns))
-        .where(Scenario.id == scenario_id, Scenario.owner_user_id == current_user.id)
+        .where(Scenario.id == scenario_id, ownership_filter(Scenario, current_user.id, wids))
     )
     scenario = result.scalar_one_or_none()
     if not scenario:
@@ -133,11 +140,15 @@ async def create_scenario(
         if not agent:
             raise HTTPException(status_code=400, detail="agent_id not found")
 
+    if data.workspace_id:
+        await assert_workspace_member(data.workspace_id, current_user.id, db)
+
     scenario = Scenario(
         name=data.name,
         description=data.description,
         agent_id=data.agent_id,
         owner_user_id=current_user.id,
+        workspace_id=data.workspace_id,
         agent_module=agent.module if agent else (data.agent_module or "test_agents.interview_agent"),
         agent_class=agent.agent_class if agent else (data.agent_class or "TestableInterviewAgent"),
         llm_model=agent.default_llm_model if agent else (data.llm_model or "gpt-4o-mini"),
@@ -184,10 +195,11 @@ async def update_scenario(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Scenario)
         .options(selectinload(Scenario.turns), selectinload(Scenario.revisions))
-        .where(Scenario.id == scenario_id, Scenario.owner_user_id == current_user.id)
+        .where(Scenario.id == scenario_id, ownership_filter(Scenario, current_user.id, wids))
     )
     scenario = result.scalar_one_or_none()
     if not scenario:
@@ -353,6 +365,7 @@ async def delete_scenario(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Delete is owner-only even for workspace scenarios.
     result = await db.execute(select(Scenario).where(Scenario.id == scenario_id, Scenario.owner_user_id == current_user.id))
     scenario = result.scalar_one_or_none()
     if not scenario:

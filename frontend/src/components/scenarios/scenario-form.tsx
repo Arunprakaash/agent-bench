@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/lib/workspace-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -194,6 +195,7 @@ interface ScenarioFormProps {
 
 export function ScenarioForm({ initial }: ScenarioFormProps) {
   const router = useRouter();
+  const { activeWorkspaceId } = useWorkspace();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(initial?.name || "");
   const [description, setDescription] = useState(initial?.description || "");
@@ -304,6 +306,7 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
         agent_args: Object.keys(agentArgs).length > 0 ? agentArgs : undefined,
         tags: tags.length > 0 ? tags : undefined,
         turns,
+        workspace_id: activeWorkspaceId ?? undefined,
       };
 
       if (initial) {

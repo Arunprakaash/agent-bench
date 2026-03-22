@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -21,9 +21,14 @@ class WorkspaceMember(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-
-    # Minimal for now; later we can make this an enum and add roles/permissions.
-    role: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # "owner" | "member"
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="members")
+    user: Mapped["User"] = relationship("User")
+
+
+from app.models.workspace import Workspace  # noqa: E402
+from app.models.user import User  # noqa: E402

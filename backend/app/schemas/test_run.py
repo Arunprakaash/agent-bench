@@ -59,6 +59,7 @@ class TestRunResponse(BaseModel):
     suite_id: UUID | None
     agent_id: UUID | None = None
     agent_version_id: UUID | None = None
+    workspace_id: UUID | None = None
     status: RunStatus
     config: dict | None
     execution_snapshot: dict | None = None
@@ -82,6 +83,7 @@ class TestRunListResponse(BaseModel):
     suite_id: UUID | None
     agent_id: UUID | None = None
     agent_version_id: UUID | None = None
+    workspace_id: UUID | None = None
     status: RunStatus
     duration_ms: float | None
     passed_turns: int = 0

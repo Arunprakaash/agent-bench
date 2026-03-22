@@ -17,6 +17,9 @@ class Agent(Base):
     owner_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     module: Mapped[str] = mapped_column(String(500), nullable=False)
     agent_class: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback, useMemo, useRef } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
+import { useWorkspace } from "@/lib/workspace-context";
 import { getStatus, formatDuration, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ export default function RunsPage() {
 
 function RunsPageInner() {
   const { runs, fetchRuns, loading } = useStore();
+  const { activeWorkspaceId } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -89,10 +91,11 @@ function RunsPageInner() {
   );
 
   const load = useCallback(() => {
-    const params: { status?: string; limit: number } = { limit: 200 };
+    const params: { status?: string; limit: number; workspace_id?: string | null } = { limit: 200 };
     if (statusFilter !== "all") params.status = statusFilter;
+    if (activeWorkspaceId) params.workspace_id = activeWorkspaceId;
     fetchRuns(params);
-  }, [fetchRuns, statusFilter]);
+  }, [fetchRuns, statusFilter, activeWorkspaceId]);
 
   useEffect(() => {
     load();

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.schema import derive_arg_schema
+from app.api.access import assert_owner, assert_workspace_member, get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.database import get_db
 from app.models.agent import Agent
@@ -17,10 +18,18 @@ router = APIRouter()
 
 @router.get("", response_model=list[AgentListItem])
 async def list_agents(
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Agent).where(Agent.owner_user_id == current_user.id).order_by(Agent.updated_at.desc())
+    wids = await get_user_workspace_ids(current_user.id, db)
+    query = (
+        select(Agent)
+        .where(ownership_filter(Agent, current_user.id, wids))
+        .order_by(Agent.updated_at.desc())
+    )
+    if workspace_id:
+        query = query.where(Agent.workspace_id == workspace_id)
     result = await db.execute(query)
     items = result.scalars().all()
     return [
@@ -34,6 +43,7 @@ async def list_agents(
             tags=a.tags,
             owner_user_id=a.owner_user_id,
             owner_display_name=current_user.display_name or current_user.email,
+            workspace_id=a.workspace_id,
             created_at=a.created_at,
             updated_at=a.updated_at,
         )
@@ -47,8 +57,9 @@ async def get_agent(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
-        select(Agent).where(Agent.id == agent_id, Agent.owner_user_id == current_user.id)
+        select(Agent).where(Agent.id == agent_id, ownership_filter(Agent, current_user.id, wids))
     )
     agent = result.scalar_one_or_none()
     if not agent:
@@ -57,12 +68,10 @@ async def get_agent(
 
 
 def _derive_and_set_arg_schema(agent: Agent) -> None:
-    """Compute arg_schema from agent module/class and set on model (not persisted here)."""
     if (agent.provider_type or "local_python") != "local_python":
         agent.arg_schema = None
         return
-    schema = derive_arg_schema(agent.module, agent.agent_class)
-    agent.arg_schema = schema
+    agent.arg_schema = derive_arg_schema(agent.module, agent.agent_class)
 
 
 @router.get("/{agent_id}/arg-schema")
@@ -71,8 +80,10 @@ async def get_agent_arg_schema(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return the agent constructor arg schema for UI form generation (derived from module/class)."""
-    result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.owner_user_id == current_user.id))
+    wids = await get_user_workspace_ids(current_user.id, db)
+    result = await db.execute(
+        select(Agent).where(Agent.id == agent_id, ownership_filter(Agent, current_user.id, wids))
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -88,6 +99,9 @@ async def create_agent(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if data.workspace_id:
+        await assert_workspace_member(data.workspace_id, current_user.id, db)
+
     agent = Agent(
         name=data.name,
         description=data.description,
@@ -102,6 +116,7 @@ async def create_agent(
         default_agent_args=data.default_agent_args,
         tags=data.tags,
         owner_user_id=current_user.id,
+        workspace_id=data.workspace_id,
     )
     _derive_and_set_arg_schema(agent)
     db.add(agent)
@@ -117,10 +132,17 @@ async def update_agent(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.owner_user_id == current_user.id))
+    wids = await get_user_workspace_ids(current_user.id, db)
+    result = await db.execute(
+        select(Agent).where(Agent.id == agent_id, ownership_filter(Agent, current_user.id, wids))
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+
+    if data.workspace_id and data.workspace_id != agent.workspace_id:
+        await assert_workspace_member(data.workspace_id, current_user.id, db)
+
     changed = data.model_dump(exclude_unset=True)
     for field, value in changed.items():
         setattr(agent, field, value)
@@ -137,6 +159,7 @@ async def delete_agent(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Delete is owner-only even for workspace resources.
     result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.owner_user_id == current_user.id))
     agent = result.scalar_one_or_none()
     if not agent:
@@ -151,7 +174,10 @@ async def test_agent_connection(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.owner_user_id == current_user.id))
+    wids = await get_user_workspace_ids(current_user.id, db)
+    result = await db.execute(
+        select(Agent).where(Agent.id == agent_id, ownership_filter(Agent, current_user.id, wids))
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

@@ -21,6 +21,8 @@ import { api } from "@/lib/api";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { syncDocumentThemeFromStorage } from "@/lib/theme";
 import { usePathname, useRouter } from "next/navigation";
+import { WorkspaceProvider, useWorkspace } from "@/lib/workspace-context";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 
 function TopBarBreadcrumbs() {
   const { items } = useBreadcrumbs();
@@ -34,7 +36,7 @@ function TopBarBreadcrumbs() {
 }
 
 function isPublicAuthPath(pathname: string) {
-  return pathname === "/auth" || pathname.startsWith("/auth/");
+  return pathname === "/auth" || pathname.startsWith("/auth/") || pathname === "/onboarding" || pathname.startsWith("/invite/");
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -94,7 +96,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
+      <WorkspaceProvider>
       <BreadcrumbsProvider>
+        <WorkspaceGate>
         <div className="flex h-screen flex-col overflow-hidden">
           <div className="h-11 border-b bg-background/95 backdrop-blur">
             <div className="flex h-full">
@@ -140,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </Link>
               </div>
-              <div className="flex flex-1 items-center pl-2 pr-2">
+              <div className="flex flex-1 items-center pl-2 pr-3 gap-2">
                 <Tooltip>
                   <TooltipTrigger
                     render={
@@ -166,6 +170,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </TooltipContent>
                 </Tooltip>
                 <TopBarBreadcrumbs />
+                <div className="ml-auto shrink-0">
+                  <WorkspaceSwitcher />
+                </div>
               </div>
             </div>
           </div>
@@ -176,7 +183,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
+        </WorkspaceGate>
       </BreadcrumbsProvider>
+      </WorkspaceProvider>
     </TooltipProvider>
   );
+}
+
+function WorkspaceGate({ children }: { children: React.ReactNode }) {
+  const { loading } = useWorkspace();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  return <>{children}</>;
 }

@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
+import { useWorkspace } from "@/lib/workspace-context";
 import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { api, type ScenarioCreate } from "@/lib/api";
@@ -94,6 +95,7 @@ export default function ScenariosPage() {
 
 function ScenariosPageInner() {
   const { scenarios, fetchScenarios, loading } = useStore();
+  const { activeWorkspaceId } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -147,8 +149,8 @@ function ScenariosPageInner() {
   );
 
   useEffect(() => {
-    fetchScenarios();
-  }, [fetchScenarios]);
+    fetchScenarios({ workspace_id: activeWorkspaceId });
+  }, [fetchScenarios, activeWorkspaceId]);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();

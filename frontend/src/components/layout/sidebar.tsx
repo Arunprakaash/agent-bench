@@ -23,6 +23,7 @@ import {
   FailureInbox,
   RadiusSetting,
   Settings,
+  Team,
   User,
   Bell,
 } from "@/lib/icons";
@@ -103,12 +104,20 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     localStorage.setItem("theme", next ? "dark" : "light");
   };
 
+  const profileInitial = (authUser?.display_name || authUser?.email || "?")[0].toUpperCase();
   const profileVisual = authUser?.avatar_url ? (
     <span
       aria-label={authUser.display_name || authUser.email || "Profile"}
-      className="h-4 w-4 rounded-full bg-cover bg-center"
+      className="h-4 w-4 rounded-full bg-cover bg-center shrink-0"
       style={{ backgroundImage: `url("${authUser.avatar_url}")` }}
     />
+  ) : authUser ? (
+    <span
+      aria-label={authUser.display_name || authUser.email || "Profile"}
+      className="h-5 w-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0"
+    >
+      {profileInitial}
+    </span>
   ) : (
     <User className="h-4 w-4" />
   );
@@ -364,6 +373,38 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             </div>
           </DialogContent>
         </Dialog>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Link href="/workspaces">
+                  <Button
+                    type="button"
+                    variant={pathname.startsWith("/workspaces") ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    aria-label="Workspaces"
+                  >
+                    <Team className="h-4 w-4" />
+                  </Button>
+                </Link>
+              }
+            />
+            <TooltipContent side="right">Workspaces</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Link href="/workspaces" className="w-full">
+            <Button
+              type="button"
+              variant={pathname.startsWith("/workspaces") ? "secondary" : "ghost"}
+              size="sm"
+              className="w-full justify-start gap-2"
+            >
+              <Team className="h-4 w-4" />
+              Workspaces
+            </Button>
+          </Link>
+        )}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger

@@ -203,7 +203,7 @@ export default function ProfilePage() {
           <div className="md:col-span-2">
             <Label>Avatar preview</Label>
             <div className="mt-2 flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full overflow-hidden border bg-muted">
+              <div className="h-12 w-12 rounded-full overflow-hidden border bg-primary/10 flex items-center justify-center shrink-0">
                 {avatarPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -211,10 +211,14 @@ export default function ProfilePage() {
                     alt="Avatar preview"
                     className="h-full w-full object-cover"
                   />
-                ) : null}
+                ) : (
+                  <span className="text-lg font-semibold text-primary select-none">
+                    {(displayName || email || "?")[0].toUpperCase()}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Preview uses your entered URL.
+                {avatarPreview ? "Preview uses your entered URL." : "Showing initial — add a URL to use a photo."}
               </p>
             </div>
           </div>

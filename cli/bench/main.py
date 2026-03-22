@@ -72,7 +72,7 @@ def run(ctx, scenario: str):
         console.print(f"[red]Scenario not found:[/red] {scenario!r}")
         sys.exit(1)
 
-    turn_count = scenario_meta.get("turn_count", 0)
+    turn_count = scenario_meta.get("turn_count") or len(scenario_meta.get("turns") or [])
     endpoint_label = _resolve_endpoint_label(client, scenario_meta)
     print_run_header(scenario_meta["name"], turn_count, endpoint_label)
 

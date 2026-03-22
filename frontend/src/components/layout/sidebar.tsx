@@ -104,12 +104,20 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     localStorage.setItem("theme", next ? "dark" : "light");
   };
 
+  const profileInitial = (authUser?.display_name || authUser?.email || "?")[0].toUpperCase();
   const profileVisual = authUser?.avatar_url ? (
     <span
       aria-label={authUser.display_name || authUser.email || "Profile"}
-      className="h-4 w-4 rounded-full bg-cover bg-center"
+      className="h-4 w-4 rounded-full bg-cover bg-center shrink-0"
       style={{ backgroundImage: `url("${authUser.avatar_url}")` }}
     />
+  ) : authUser ? (
+    <span
+      aria-label={authUser.display_name || authUser.email || "Profile"}
+      className="h-5 w-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0"
+    >
+      {profileInitial}
+    </span>
   ) : (
     <User className="h-4 w-4" />
   );

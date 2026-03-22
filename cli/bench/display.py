@@ -62,7 +62,7 @@ def _failure_reason(turn: dict) -> str | None:
 def print_run_header(scenario_name: str, turn_count: int, endpoint_label: str) -> None:
     console.print(
         f"Running [bold]{turn_count}[/bold] turn{'s' if turn_count != 1 else ''} "
-        f"against [bold]{endpoint_label}[/bold] endpoint..."
+        f"against [bold]{endpoint_label}[/bold]"
     )
 
 

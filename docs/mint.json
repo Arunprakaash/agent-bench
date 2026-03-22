@@ -1,5 +1,5 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
+  "$schema": "https://mintlify.com/mint.json",
   "name": "Bench",
   "logo": {
     "dark": "/logo/dark.svg",

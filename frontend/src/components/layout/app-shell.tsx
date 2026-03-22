@@ -21,6 +21,8 @@ import { api } from "@/lib/api";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { syncDocumentThemeFromStorage } from "@/lib/theme";
 import { usePathname, useRouter } from "next/navigation";
+import { WorkspaceProvider } from "@/lib/workspace-context";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 
 function TopBarBreadcrumbs() {
   const { items } = useBreadcrumbs();
@@ -94,6 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
+      <WorkspaceProvider>
       <BreadcrumbsProvider>
         <div className="flex h-screen flex-col overflow-hidden">
           <div className="h-11 border-b bg-background/95 backdrop-blur">
@@ -140,7 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </Link>
               </div>
-              <div className="flex flex-1 items-center pl-2 pr-2">
+              <div className="flex flex-1 items-center pl-2 pr-3 gap-2">
                 <Tooltip>
                   <TooltipTrigger
                     render={
@@ -166,6 +169,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </TooltipContent>
                 </Tooltip>
                 <TopBarBreadcrumbs />
+                <div className="ml-auto shrink-0">
+                  <WorkspaceSwitcher />
+                </div>
               </div>
             </div>
           </div>
@@ -177,6 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </BreadcrumbsProvider>
+      </WorkspaceProvider>
     </TooltipProvider>
   );
 }

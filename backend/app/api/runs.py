@@ -26,6 +26,7 @@ async def list_runs(
     suite_id: UUID | None = None,
     agent_id: UUID | None = None,
     status: RunStatus | None = None,
+    workspace_id: UUID | None = None,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -47,6 +48,8 @@ async def list_runs(
         query = query.where(TestRun.agent_id == agent_id)
     if status:
         query = query.where(TestRun.status == status)
+    if workspace_id:
+        query = query.where(TestRun.workspace_id == workspace_id)
 
     result = await db.execute(query)
     rows = result.all()

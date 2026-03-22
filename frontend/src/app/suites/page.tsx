@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api, type ScenarioListItem, type SuiteListItem } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace-context";
 import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export default function SuitesPage() {
 }
 
 function SuitesPageInner() {
+  const { activeWorkspaceId } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -81,12 +83,13 @@ function SuitesPageInner() {
 
   useEffect(() => {
     loadSuites();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspaceId]);
 
   const loadSuites = async () => {
     setLoadError(null);
     try {
-      const data = await api.suites.list();
+      const data = await api.suites.list(activeWorkspaceId);
       setSuites(data);
       const scenarioData = await api.scenarios.list();
       setScenarios(scenarioData);

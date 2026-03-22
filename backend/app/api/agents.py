@@ -18,15 +18,19 @@ router = APIRouter()
 
 @router.get("", response_model=list[AgentListItem])
 async def list_agents(
+    workspace_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     wids = await get_user_workspace_ids(current_user.id, db)
-    result = await db.execute(
+    query = (
         select(Agent)
         .where(ownership_filter(Agent, current_user.id, wids))
         .order_by(Agent.updated_at.desc())
     )
+    if workspace_id:
+        query = query.where(Agent.workspace_id == workspace_id)
+    result = await db.execute(query)
     items = result.scalars().all()
     return [
         AgentListItem(

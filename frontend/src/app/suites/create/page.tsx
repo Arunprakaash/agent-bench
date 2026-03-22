@@ -18,12 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Search } from "@/lib/icons";
+import { useWorkspace } from "@/lib/workspace-context";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 import { TablePagination } from "@/components/table-pagination";
 
 export default function CreateSuitePage() {
   const router = useRouter();
   const { setItems } = useBreadcrumbs();
+  const { activeWorkspaceId } = useWorkspace();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -110,6 +112,7 @@ export default function CreateSuitePage() {
         name: name.trim(),
         description: description.trim() ? description.trim() : undefined,
         scenario_ids: Array.from(selectedScenarioIds),
+        workspace_id: activeWorkspaceId ?? undefined,
       });
       router.push(`/suites/${suite.id}`);
     } catch (e) {

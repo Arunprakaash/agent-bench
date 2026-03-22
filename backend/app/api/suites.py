@@ -57,14 +57,21 @@ async def _load_suite_response(
 
 
 @router.get("", response_model=list[SuiteListResponse])
-async def list_suites(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def list_suites(
+    workspace_id: UUID | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     wids = await get_user_workspace_ids(current_user.id, db)
-    result = await db.execute(
+    query = (
         select(Suite)
         .options(selectinload(Suite.scenarios))
         .where(ownership_filter(Suite, current_user.id, wids))
         .order_by(Suite.updated_at.desc())
     )
+    if workspace_id:
+        query = query.where(Suite.workspace_id == workspace_id)
+    result = await db.execute(query)
     suites = result.scalars().all()
     return [
         SuiteListResponse(

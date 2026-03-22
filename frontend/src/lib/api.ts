@@ -139,6 +139,7 @@ export interface AgentCreate {
   default_judge_model?: string;
   default_agent_args?: Record<string, unknown> | null;
   tags?: string[];
+  workspace_id?: string | null;
 }
 
 export interface AgentConnectionTestResponse {
@@ -183,6 +184,7 @@ export interface ScenarioCreate {
   mock_tools?: Record<string, unknown>;
   tags?: string[];
   turns: Turn[];
+  workspace_id?: string | null;
 }
 
 export interface ActualEvent {
@@ -470,7 +472,10 @@ export const api = {
       request<void>("/api/auth/api-token", { method: "DELETE" }),
   },
   agents: {
-    list: () => request<AgentListItem[]>("/api/agents"),
+    list: (workspaceId?: string | null) => {
+      const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+      return request<AgentListItem[]>(`/api/agents${qs}`);
+    },
     get: (id: string) => request<Agent>(`/api/agents/${id}`),
     getArgSchema: (id: string) =>
       request<{ arg_schema: ArgSchemaField[] | null }>(
@@ -495,8 +500,13 @@ export const api = {
       request<void>(`/api/agents/${id}`, { method: "DELETE" }),
   },
   scenarios: {
-    list: (tag?: string) =>
-      request<ScenarioListItem[]>(`/api/scenarios${tag ? `?tag=${tag}` : ""}`),
+    list: (tag?: string, workspaceId?: string | null) => {
+      const params = new URLSearchParams();
+      if (tag) params.set("tag", tag);
+      if (workspaceId) params.set("workspace_id", workspaceId);
+      const qs = params.toString();
+      return request<ScenarioListItem[]>(`/api/scenarios${qs ? `?${qs}` : ""}`);
+    },
     get: (id: string) => request<Scenario>(`/api/scenarios/${id}`),
     export: (id: string) =>
       request<ScenarioExportResponse>(`/api/scenarios/${id}/export`),
@@ -523,12 +533,16 @@ export const api = {
       request<void>(`/api/scenarios/${id}`, { method: "DELETE" }),
   },
   suites: {
-    list: () => request<SuiteListItem[]>("/api/suites"),
+    list: (workspaceId?: string | null) => {
+      const qs = workspaceId ? `?workspace_id=${workspaceId}` : "";
+      return request<SuiteListItem[]>(`/api/suites${qs}`);
+    },
     get: (id: string) => request<Suite>(`/api/suites/${id}`),
     create: (data: {
       name: string;
       description?: string;
       scenario_ids?: string[];
+      workspace_id?: string | null;
     }) =>
       request<Suite>("/api/suites", {
         method: "POST",
@@ -552,6 +566,7 @@ export const api = {
       agent_id?: string;
       status?: string;
       limit?: number;
+      workspace_id?: string | null;
     }) => {
       const searchParams = new URLSearchParams();
       if (params?.scenario_id)
@@ -560,6 +575,7 @@ export const api = {
       if (params?.agent_id) searchParams.set("agent_id", params.agent_id);
       if (params?.status) searchParams.set("status", params.status);
       if (params?.limit) searchParams.set("limit", String(params.limit));
+      if (params?.workspace_id) searchParams.set("workspace_id", params.workspace_id);
       const qs = searchParams.toString();
       return request<TestRunListItem[]>(`/api/runs${qs ? `?${qs}` : ""}`);
     },

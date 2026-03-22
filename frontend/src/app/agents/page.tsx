@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api, type AgentListItem } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace-context";
 import { DEFAULT_PAGE_SIZE, formatRelativeTime, paginate } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function AgentsPage() {
 }
 
 function AgentsPageInner() {
+  const { activeWorkspaceId } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -96,7 +98,7 @@ function AgentsPageInner() {
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await api.agents.list();
+      const data = await api.agents.list(activeWorkspaceId);
       setItems(data);
     } catch (e) {
       setLoadError((e as Error).message || "Failed to load agents.");
@@ -104,7 +106,7 @@ function AgentsPageInner() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => {
     load();

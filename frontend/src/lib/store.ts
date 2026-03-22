@@ -7,8 +7,8 @@ interface AppState {
   loading: boolean;
   error: string | null;
 
-  fetchScenarios: () => Promise<void>;
-  fetchRuns: (params?: { scenario_id?: string; suite_id?: string; status?: string; limit?: number }) => Promise<void>;
+  fetchScenarios: (params?: { workspace_id?: string | null }) => Promise<void>;
+  fetchRuns: (params?: { scenario_id?: string; suite_id?: string; status?: string; limit?: number; workspace_id?: string | null }) => Promise<void>;
   clearError: () => void;
 }
 
@@ -18,10 +18,10 @@ export const useStore = create<AppState>((set) => ({
   loading: false,
   error: null,
 
-  fetchScenarios: async () => {
+  fetchScenarios: async (params) => {
     set({ loading: true, error: null });
     try {
-      const scenarios = await api.scenarios.list();
+      const scenarios = await api.scenarios.list(undefined, params?.workspace_id);
       set({ scenarios, loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });

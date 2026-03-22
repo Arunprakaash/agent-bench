@@ -279,6 +279,59 @@ async def remove_member(
     await db.commit()
 
 
+@router.patch("/{workspace_id}/members/{user_id}", response_model=WorkspaceMemberResponse)
+async def update_member_role(
+    workspace_id: UUID,
+    user_id: UUID,
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a member's role. Only owners can do this."""
+    from pydantic import BaseModel as BM
+
+    caller = await assert_workspace_member(workspace_id, current_user.id, db)
+    if caller.role != "owner":
+        raise HTTPException(status_code=403, detail="Only workspace owners can change roles.")
+
+    new_role = data.get("role")
+    if new_role not in ("owner", "member"):
+        raise HTTPException(status_code=400, detail="Role must be 'owner' or 'member'.")
+
+    # Prevent demoting the last owner
+    if user_id == current_user.id and new_role != "owner":
+        owners_result = await db.execute(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.role == "owner",
+            )
+        )
+        if len(owners_result.scalars().all()) <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote the last owner.")
+
+    target_result = await db.execute(
+        select(WorkspaceMember, User.email, User.display_name)
+        .join(User, User.id == WorkspaceMember.user_id)
+        .where(WorkspaceMember.workspace_id == workspace_id, WorkspaceMember.user_id == user_id)
+    )
+    row = target_result.one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Member not found.")
+
+    member, email, display_name = row
+    member.role = new_role
+    await db.commit()
+    await db.refresh(member)
+
+    return WorkspaceMemberResponse(
+        user_id=member.user_id,
+        email=email,
+        display_name=display_name,
+        role=member.role,
+        joined_at=member.created_at,
+    )
+
+
 class WorkspaceInviteRequest(BaseModel):
     email: str
     role: str = "member"

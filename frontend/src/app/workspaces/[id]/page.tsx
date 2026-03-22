@@ -160,6 +160,15 @@ export default function WorkspaceDetailPage() {
     }
   };
 
+  const handleChangeRole = async (userId: string, role: string) => {
+    try {
+      await api.workspaces.updateMemberRole(id, userId, role);
+      await load();
+    } catch (e) {
+      setLoadError((e as Error).message || "Failed to update role.");
+    }
+  };
+
   const handleRevokeInvite = async (token: string) => {
     try {
       await api.workspaces.revokeInvite(id, token);
@@ -249,9 +258,20 @@ export default function WorkspaceDetailPage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={m.role === "owner" ? "default" : "secondary"}>
-                    {m.role}
-                  </Badge>
+                  {isOwner ? (
+                    <select
+                      value={m.role}
+                      onChange={(e) => void handleChangeRole(m.user_id, e.target.value)}
+                      className="h-7 rounded-md border border-input bg-background px-2 py-0 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="member">member</option>
+                      <option value="owner">owner</option>
+                    </select>
+                  ) : (
+                    <Badge variant={m.role === "owner" ? "default" : "secondary"}>
+                      {m.role}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">
                   {formatRelativeTime(m.joined_at)}

@@ -23,6 +23,7 @@ export default function InvitePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     api.invites
@@ -31,15 +32,43 @@ export default function InvitePage() {
       .catch((e) =>
         setLoadError((e as Error).message || "Invalid or expired invite link."),
       );
+    if (getAuthToken()) {
+      api.auth.me().then((u) => setCurrentUserEmail(u.email)).catch(() => {});
+    }
   }, [token]);
 
+  const redirectToAuth = async (email: string | null) => {
+    const params = new URLSearchParams({ next: `/invite/${token}` });
+    if (email) {
+      params.set("email", email);
+      try {
+        const { exists } = await api.auth.checkEmail(email);
+        params.set("mode", exists ? "login" : "signup");
+      } catch {
+        params.set("mode", "signup");
+      }
+    } else {
+      params.set("mode", "login");
+    }
+    router.push(`/auth?${params.toString()}`);
+  };
+
   const handleAccept = async () => {
-    if (!getAuthToken()) {
-      const params = new URLSearchParams({ next: `/invite/${token}`, mode: "signup" });
-      if (info?.invited_email) params.set("email", info.invited_email);
-      router.push(`/auth?${params.toString()}`);
+    const isLoggedIn = !!getAuthToken();
+    const invitedEmail = info?.invited_email ?? null;
+
+    // If logged in but as the wrong user, force them to auth as the invited email
+    if (isLoggedIn && invitedEmail && currentUserEmail !== invitedEmail) {
+      await redirectToAuth(invitedEmail);
       return;
     }
+
+    // Not logged in at all
+    if (!isLoggedIn) {
+      await redirectToAuth(invitedEmail);
+      return;
+    }
+
     setAccepting(true);
     setAcceptError(null);
     try {
@@ -98,6 +127,12 @@ export default function InvitePage() {
                 </p>
               </div>
 
+              {currentUserEmail && info.invited_email && currentUserEmail !== info.invited_email && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                  You’re signed in as <strong>{currentUserEmail}</strong>. This invite is for <strong>{info.invited_email}</strong> — you’ll be asked to sign in or create an account with that email.
+                </div>
+              )}
+
               {acceptError && (
                 <p className="text-sm text-destructive text-center">
                   {acceptError}
@@ -106,14 +141,14 @@ export default function InvitePage() {
 
               <Button
                 className="w-full"
-                onClick={handleAccept}
+                onClick={() => void handleAccept()}
                 disabled={accepting}
               >
                 {accepting
                   ? "Joining…"
-                  : getAuthToken()
-                    ? "Accept invitation"
-                    : "Sign in to accept"}
+                  : !getAuthToken() || (info.invited_email && currentUserEmail !== info.invited_email)
+                    ? "Sign in to accept"
+                    : "Accept invitation"}
               </Button>
             </>
           )}

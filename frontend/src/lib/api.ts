@@ -444,6 +444,8 @@ export const api = {
         body: JSON.stringify(data),
       }),
     logout: () => request<void>("/api/auth/logout", { method: "POST" }),
+    checkEmail: (email: string) =>
+      request<{ exists: boolean }>(`/api/auth/check-email?email=${encodeURIComponent(email)}`),
     register: (data: {
       email: string;
       password: string;
@@ -643,6 +645,11 @@ export const api = {
     removeMember: (id: string, userId: string) =>
       request<void>(`/api/workspaces/${id}/members/${userId}`, {
         method: "DELETE",
+      }),
+    updateMemberRole: (id: string, userId: string, role: string) =>
+      request<WorkspaceMemberResponse>(`/api/workspaces/${id}/members/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
       }),
     createInvite: (id: string, data: { email: string; role?: string }) =>
       request<{ token: string; invite_url: string; email_sent: boolean }>(`/api/workspaces/${id}/invites`, {

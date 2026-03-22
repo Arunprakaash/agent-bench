@@ -295,3 +295,11 @@ async def login(data: LoginRequest):
 async def logout():
     # Token is stored client-side for now.
     return None
+
+
+@router.get("/check-email")
+async def check_email(email: str = Query(...)):
+    """Public endpoint: returns whether an email is registered."""
+    async with async_session() as db:
+        user = (await db.execute(select(User).where(User.email == email.lower().strip()))).scalar_one_or_none()
+    return {"exists": user is not None}

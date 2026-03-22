@@ -12,6 +12,7 @@ interface InviteInfo {
   workspace_name: string;
   role: string;
   expires_at: string | null;
+  invited_email: string | null;
 }
 
 export default function InvitePage() {
@@ -34,7 +35,9 @@ export default function InvitePage() {
 
   const handleAccept = async () => {
     if (!getAuthToken()) {
-      router.push(`/auth?next=/invite/${token}`);
+      const params = new URLSearchParams({ next: `/invite/${token}`, mode: "signup" });
+      if (info?.invited_email) params.set("email", info.invited_email);
+      router.push(`/auth?${params.toString()}`);
       return;
     }
     setAccepting(true);
@@ -87,6 +90,9 @@ export default function InvitePage() {
           ) : (
             <>
               <div className="text-center space-y-1">
+                {info.invited_email && (
+                  <p className="text-sm font-medium">{info.invited_email}</p>
+                )}
                 <p className="text-sm text-muted-foreground">
                   You’ve been invited as a {info.role}
                 </p>

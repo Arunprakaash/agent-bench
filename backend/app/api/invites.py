@@ -42,6 +42,7 @@ class InviteInfoResponse(BaseModel):
     workspace_name: str
     role: str
     expires_at: datetime | None
+    invited_email: str | None = None
 
 
 # ── Generate invite link ────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ async def get_invite_info(token: str, db: AsyncSession = Depends(get_db)):
         workspace_name=workspace.name,
         role=invite.role,
         expires_at=invite.expires_at,
+        invited_email=invite.invited_email,
     )
 
 

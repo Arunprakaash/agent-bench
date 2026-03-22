@@ -8,7 +8,7 @@ Bench is an agent testing platform. Define multi-turn conversation scenarios, ru
 |---|---|
 | [Getting Started](./getting-started.md) | Install, run, and execute your first test |
 | [Concepts](./concepts.md) | Agents, scenarios, suites, runs, automation |
-| [Connecting External Agents](./connecting-agents.md) | REST API connector — integration guide |
+| [Connecting External Agents](./connecting-agents.md) | HTTP Agent connector — integration guide |
 | [API Reference](./api-reference.md) | All endpoints, request/response shapes |
 | [CI & Automation](./ci-automation.md) | Scheduled runs, regression alerts, API tokens |
 

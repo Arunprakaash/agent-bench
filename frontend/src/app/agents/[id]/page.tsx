@@ -15,7 +15,7 @@ const FOCUS_LINK =
 
 function connectorLabel(providerType?: string | null): string {
   if (!providerType || providerType === "local_python") return "local_python";
-  if (providerType === "rest_api") return "REST API";
+  if (providerType === "rest_api") return "HTTP Agent";
   return providerType;
 }
 

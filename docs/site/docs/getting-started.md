@@ -65,10 +65,10 @@ Open http://localhost:3000 and register. Each user owns their own agents and sce
 
 An agent is the target under test — it can be a local Python class or an external HTTP endpoint.
 
-**For an external REST API agent:**
+**For an external HTTP agent:**
 
 1. Go to **Agents → New Agent**
-2. Set **Connector Type** to `REST API (External)`
+2. Set **Connector Type** to `HTTP Agent`
 3. Fill in your endpoint URL and any required headers
 4. Click **Test Connection** to verify reachability
 
@@ -115,5 +115,5 @@ Suites let you run related scenarios together.
 ## Next steps
 
 - [Concepts](./concepts.md) — understand how everything fits together
-- [Connecting External Agents](./connecting-agents.md) — integrate your agent via REST API
+- [Connecting External Agents](./connecting-agents.md) — integrate your agent via HTTP
 - [CI & Automation](./ci-automation.md) — schedule regression runs and integrate with CI

@@ -23,7 +23,7 @@ For each turn in a scenario, Bench sends a JSON request to your endpoint, your a
 
 ## Step 1 — Create the agent in Bench
 
-In the UI: **Agents → New Agent**, set **Connector Type** to `REST API (External)`.
+In the UI: **Agents → New Agent**, set **Connector Type** to `HTTP Agent`.
 
 Or via API:
 

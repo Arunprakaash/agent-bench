@@ -192,7 +192,7 @@ function ConnectionConfigEditor({
     <div className="space-y-8 border rounded-lg p-6 bg-muted/30">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h3 className="text-sm font-semibold">REST API Connection</h3>
+          <h3 className="text-sm font-semibold">HTTP Agent Connection</h3>
           <p className="text-xs text-muted-foreground mt-1">
             Configure how the system talks to your remote agent.
           </p>
@@ -535,11 +535,12 @@ export default function EditAgentPage() {
               <Label htmlFor="agent-provider">Connector Type</Label>
               <Select value={providerType} onValueChange={setProviderType}>
                 <SelectTrigger id="agent-provider">
-                  <SelectValue />
+                  <SelectValue className="sr-only" />
+                  <span>{providerType === "rest_api" ? "HTTP Agent" : "Local Python"}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="local_python">Local Python</SelectItem>
-                  <SelectItem value="rest_api">REST API (External)</SelectItem>
+                  <SelectItem value="rest_api">HTTP Agent</SelectItem>
                 </SelectContent>
               </Select>
             </div>

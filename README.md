@@ -18,7 +18,7 @@ Agent testing platform. Define multi-turn conversation scenarios, run them again
 - **Suites** — group scenarios and run them together
 - **Failures inbox** — triage failed runs with the first failing turn surfaced
 - **Regression alerts** — get notified when a passing scenario starts failing
-- **External agent support** — connect any HTTP service via the REST API connector
+- **External agent support** — connect any HTTP service via the HTTP Agent connector
 - **CI integration** — run suites from pipelines using API tokens
 
 ---
@@ -77,7 +77,7 @@ POST /bench/run
 { "events": [{ "type": "message", "role": "assistant", "content": "Hi!" }] }
 ```
 
-Create an agent in Bench with `Connector Type: REST API`, point it at your endpoint, and start writing scenarios.
+Create an agent in Bench with `Connector Type: HTTP Agent`, point it at your endpoint, and start writing scenarios.
 
 Full integration guide → [Connecting External Agents](https://Arunprakaash.github.io/agent-bench/connecting-agents)
 

@@ -21,7 +21,7 @@ import { api } from "@/lib/api";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { syncDocumentThemeFromStorage } from "@/lib/theme";
 import { usePathname, useRouter } from "next/navigation";
-import { WorkspaceProvider } from "@/lib/workspace-context";
+import { WorkspaceProvider, useWorkspace } from "@/lib/workspace-context";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 
 function TopBarBreadcrumbs() {

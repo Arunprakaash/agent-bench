@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { api, type WorkspaceListItem } from "@/lib/api";
 
 interface WorkspaceContextValue {
@@ -28,6 +29,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [workspaces, setWorkspaces] = useState<WorkspaceListItem[]>([]);
   const [activeWorkspaceId, _setActiveWorkspaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const setActiveWorkspaceId = useCallback((id: string | null) => {
     _setActiveWorkspaceId(id);
@@ -39,15 +42,26 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const load = useCallback(() => {
+    if (pathname === "/onboarding") {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     api.workspaces
       .list()
       .then((data) => {
         setWorkspaces(data);
+        if (data.length === 0) {
+          router.replace("/onboarding");
+          return;
+        }
         // Restore persisted selection, but only if still valid
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored && data.some((w) => w.id === stored)) {
           _setActiveWorkspaceId(stored);
+        } else if (data.length > 0) {
+          _setActiveWorkspaceId(data[0].id);
+          localStorage.setItem(STORAGE_KEY, data[0].id);
         } else {
           _setActiveWorkspaceId(null);
           localStorage.removeItem(STORAGE_KEY);
@@ -55,7 +69,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => setWorkspaces([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [pathname, router]);
 
   useEffect(() => {
     load();

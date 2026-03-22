@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api, type ScenarioListItem, type SuiteListItem } from "@/lib/api";
-import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -382,8 +382,8 @@ function SuitesPageInner() {
                 <TableHead className="w-[50%]">Name</TableHead>
                 <TableHead className="w-[100px] text-center">Scenarios</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
-                <TableHead className="w-[190px] text-right">Created At</TableHead>
-                <TableHead className="w-[190px] text-right">Updated At</TableHead>
+                <TableHead className="w-[100px] text-right">Created At</TableHead>
+                <TableHead className="w-[100px] text-right">Updated At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -428,12 +428,12 @@ function SuitesPageInner() {
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/suites/${suite.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDateTime(suite.created_at)}
+                      {formatRelativeTime(suite.created_at)}
                     </Link>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/suites/${suite.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDateTime(suite.updated_at)}
+                      {formatRelativeTime(suite.updated_at)}
                     </Link>
                   </TableCell>
                 </TableRow>

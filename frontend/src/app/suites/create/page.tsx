@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type ScenarioListItem, type Suite } from "@/lib/api";
-import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -268,8 +268,8 @@ export default function CreateSuitePage() {
                       <TableHead className="w-[44px]">Use</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead className="w-[170px] text-right">Created By</TableHead>
-                      <TableHead className="w-[190px] text-right">Created At</TableHead>
-                      <TableHead className="w-[190px] text-right">Updated At</TableHead>
+                      <TableHead className="w-[100px] text-right">Created At</TableHead>
+                      <TableHead className="w-[100px] text-right">Updated At</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -296,10 +296,10 @@ export default function CreateSuitePage() {
                             {s.owner_display_name || "Unknown"}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
-                            {formatDateTime(s.created_at)}
+                            {formatRelativeTime(s.created_at)}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
-                            {formatDateTime(s.updated_at)}
+                            {formatRelativeTime(s.updated_at)}
                           </TableCell>
                         </TableRow>
                       );

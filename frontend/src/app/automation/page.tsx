@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { api, type RegressionAlert, type ScenarioListItem, type ScheduledRun, type SuiteListItem } from "@/lib/api";
-import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDateTime, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -238,7 +238,7 @@ export default function AutomationPage() {
                       {s.target_type}
                     </TableCell>
                     <TableCell>{s.interval_minutes}m</TableCell>
-                    <TableCell>{formatDateTime(s.created_at)}</TableCell>
+                    <TableCell>{formatRelativeTime(s.created_at)}</TableCell>
                     <TableCell>{formatDateTime(s.next_run_at)}</TableCell>
                     <TableCell className="text-right">
                       <Link href={`/automation/${s.id}/edit`}>
@@ -298,7 +298,7 @@ export default function AutomationPage() {
                         View run
                       </Link>
                     </TableCell>
-                    <TableCell>{formatDateTime(a.created_at)}</TableCell>
+                    <TableCell>{formatRelativeTime(a.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"

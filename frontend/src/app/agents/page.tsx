@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api, type AgentListItem } from "@/lib/api";
-import { DEFAULT_PAGE_SIZE, formatDateTime, paginate } from "@/lib/table-helpers";
+import { DEFAULT_PAGE_SIZE, formatRelativeTime, paginate } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -325,8 +325,8 @@ function AgentsPageInner() {
                 </TableHead>
                 <TableHead className="w-[40%]">Name</TableHead>
                 <TableHead className="w-[140px] text-right">Created By</TableHead>
-                <TableHead className="w-[170px] text-right">Created At</TableHead>
-                <TableHead className="w-[170px] text-right">Updated At</TableHead>
+                <TableHead className="w-[100px] text-right">Created At</TableHead>
+                <TableHead className="w-[100px] text-right">Updated At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -357,10 +357,10 @@ function AgentsPageInner() {
                     {a.owner_display_name || "Unknown"}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground tabular-nums">
-                    {formatDateTime(a.created_at)}
+                    {formatRelativeTime(a.created_at)}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground tabular-nums">
-                    {formatDateTime(a.updated_at)}
+                    {formatRelativeTime(a.updated_at)}
                   </TableCell>
                 </TableRow>
               ))}

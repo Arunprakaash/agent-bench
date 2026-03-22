@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api, type ScenarioListItem, type Suite } from "@/lib/api";
-import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -229,7 +229,7 @@ export default function EditSuitePage() {
                           <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{s.description}</div>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">{formatDate(s.updated_at)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatRelativeTime(s.updated_at)}</TableCell>
                     </TableRow>
                   );
                 })}

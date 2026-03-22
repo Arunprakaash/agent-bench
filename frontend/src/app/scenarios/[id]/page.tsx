@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, type Scenario, type TestRunListItem } from "@/lib/api";
-import { getStatus, formatDuration, formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { getStatus, formatDuration, formatDate, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { ScenarioForm } from "@/components/scenarios/scenario-form";
 import { Button } from "@/components/ui/button";
@@ -434,7 +434,7 @@ export default function ScenarioDetailPage() {
                             </TableCell>
                             <TableCell className="text-right text-muted-foreground">
                               <Link href={href} className={`block ${FOCUS_LINK}`}>
-                                {formatDate(run.created_at)}
+                                {formatRelativeTime(run.created_at)}
                               </Link>
                             </TableCell>
                           </TableRow>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   getStatus,
   formatDuration,
-  formatDateTime,
+  formatRelativeTime,
   paginate,
 } from "@/lib/table-helpers";
 import { withFrom } from "@/lib/nav";
@@ -254,7 +254,7 @@ export function RecentRuns({ runs }: RecentRunsProps) {
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
-                        {formatDateTime(run.created_at)}
+                        {formatRelativeTime(run.created_at)}
                       </Link>
                     </TableCell>
                   </TableRow>

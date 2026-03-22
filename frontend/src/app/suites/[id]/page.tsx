@@ -5,7 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { api, type Suite, type TestRunListItem } from "@/lib/api";
-import { getStatus, formatDuration, formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { getStatus, formatDuration, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -741,7 +741,7 @@ function RunsTable({
                 <TableHead className="w-[100px] text-center">Turns</TableHead>
                 <TableHead className="w-[100px] text-right">Duration</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
-                <TableHead className="w-[190px] text-right">Date & Time</TableHead>
+                <TableHead className="w-[100px] text-right">Date & Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -782,7 +782,7 @@ function RunsTable({
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
-                        {formatDateTime(run.created_at)}
+                        {formatRelativeTime(run.created_at)}
                       </Link>
                     </TableCell>
                   </TableRow>

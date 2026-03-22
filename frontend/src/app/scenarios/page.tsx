@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { api, type ScenarioCreate } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -596,8 +596,8 @@ function ScenariosPageInner() {
                 <TableHead className="w-[80px] text-center">Turns</TableHead>
                 <TableHead>Tags</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
-                <TableHead className="w-[190px] text-right">Created At</TableHead>
-                <TableHead className="w-[190px] text-right">Updated At</TableHead>
+                <TableHead className="w-[100px] text-right">Created At</TableHead>
+                <TableHead className="w-[100px] text-right">Updated At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -664,12 +664,12 @@ function ScenariosPageInner() {
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/scenarios/${scenario.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDateTime(scenario.created_at)}
+                      {formatRelativeTime(scenario.created_at)}
                     </Link>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/scenarios/${scenario.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDateTime(scenario.updated_at)}
+                      {formatRelativeTime(scenario.updated_at)}
                     </Link>
                   </TableCell>
                 </TableRow>

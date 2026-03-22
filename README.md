@@ -1,106 +1,88 @@
 # Bench
 
-Bench is a visual testing and evaluation platform for voice agents (based on LiveKit's agent testing framework).
+Agent testing platform. Define multi-turn conversation scenarios, run them against your agent, and get turn-by-turn pass/fail results with LLM-based evaluation.
 
-It helps teams automate multi-turn test scenarios, run regressions quickly, and debug agent behavior with turn-level verdicts.
+**[Developer Docs →](https://Arunprakaash.github.io/agent-bench/)**
 
-## Why This Product
-
-Teams building agents usually struggle with:
-
-- brittle manual testing
-- no repeatable regression flow
-- weak visibility into why a run passed or failed
-
-Bench solves this by letting you define scenarios once, run them repeatedly, and inspect failures with structured evidence.
-
-## Core Use Case (End-to-End)
-
-### 1) Track quality at a glance
-
-Use the dashboard to monitor overall run health and activity.
+---
 
 ![Dashboard](docs/screenshots/readme/dashboard.png)
 
-### 2) Build reusable multi-turn scenarios
+---
 
-Create scenarios with user turns and expectations (messages, tool calls, handoffs).
+## What it does
 
-![Scenarios List](docs/screenshots/readme/scenarios-list.png)
+- **Multi-turn scenarios** — define user inputs and expectations (messages, tool calls, handoffs) per turn
+- **LLM evaluation** — intent-based assertions judged by an LLM, not brittle string matching
+- **Version history** — every scenario save is versioned; restore any previous version
+- **Suites** — group scenarios and run them together
+- **Failures inbox** — triage failed runs with the first failing turn surfaced
+- **Regression alerts** — get notified when a passing scenario starts failing
+- **External agent support** — connect any HTTP service via the REST API connector
+- **CI integration** — run suites from pipelines using API tokens
 
-### 3) Inspect and edit scenario details
+---
 
-Tune prompts, expectations, and turn flows before running tests.
+## Screenshots
+
+![Scenarios](docs/screenshots/readme/scenarios-list.png)
 
 ![Scenario Detail](docs/screenshots/readme/scenario-detail.png)
 
-### 4) Run grouped regression suites
+![External Agent](docs/screenshots/readme/agent-external.png)
 
-Bundle scenarios into suites to validate complete workflows in one run.
-
-![Suite Detail](docs/screenshots/readme/suite-detail.png)
-
-### 5) Review run results and triage failures
-
-Analyze run history, pass/fail trends, and failure details for fast iteration.
-
-![Runs List](docs/screenshots/readme/runs-list.png)
+![Run Detail](docs/screenshots/readme/run-detail.png)
 
 ![Failures](docs/screenshots/readme/failures.png)
 
-## Features
+---
 
-- Scenario editor (multi-turn test flows)
-- Expectation/assertion builder (messages, tool calls, handoffs, etc.)
-- Test runner (execute scenarios and inspect results)
-- Run history + failures inbox
-- Suite management (group scenarios into suites)
-- Side-by-side diff for runs
-- API-first workflows (Postman collection included)
-
-## Quick Start (Docker)
-
-1. Start the stack:
+## Quick start
 
 ```bash
+# Start the stack
 docker compose up -d --build
-```
 
-2. Seed demo data (this wipes and re-creates test data):
-
-```bash
+# Seed demo data (optional)
 docker compose exec backend python scripts/reset_and_seed.py
 ```
 
-3. Open the UI:
+| Service | URL |
+|---|---|
+| UI | http://localhost:3000 |
+| API | http://localhost:8000 |
+| Swagger | http://localhost:8000/api/docs |
 
-- Frontend: http://localhost:3000
-- Backend health: http://localhost:8000/api/health
-- Backend API docs (Swagger): http://localhost:8000/api/docs
+Add your OpenAI key to `backend/.env`:
 
-## Environment
+```env
+OPENAI_API_KEY=sk-...
+```
 
-The backend uses `backend/.env` (loaded by `docker-compose.yml`).
+---
 
-Common variables:
+## Connecting your agent
 
-- `OPENAI_API_KEY`: used by the judge/evaluation flow (if unset, judge steps may fail)
-- `JWT_SECRET`: for auth tokens
-- `CORS_ORIGINS`: controls allowed origins
+Bench connects to your agent over HTTP. Add one endpoint to your app:
 
-## API / Postman
+```bash
+POST /bench/run
+```
 
-Postman collection:
+```json
+// Bench sends
+{ "user_input": "Hello", "chat_history": [], "agent_args": {} }
 
-- `backend/postman/Bench-API.postman_collection.json`
+// Your app returns
+{ "events": [{ "type": "message", "role": "assistant", "content": "Hi!" }] }
+```
 
-Swagger UI:
+Create an agent in Bench with `Connector Type: REST API`, point it at your endpoint, and start writing scenarios.
 
-- `/api/docs`
+Full integration guide → [Connecting External Agents](https://Arunprakaash.github.io/agent-bench/connecting-agents)
 
-For full docs, see `docs/`.
+---
 
-## Screenshot Assets
+## Docs
 
-- Key README screenshots: `docs/screenshots/readme/`
-- Additional product screenshots: `docs/screenshots/archive/`
+[https://Arunprakaash.github.io/agent-bench/](https://Arunprakaash.github.io/agent-bench/)

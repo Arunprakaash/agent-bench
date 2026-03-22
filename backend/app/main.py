@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api import agents, auth, automation, chat, dev, failures, runs, scenarios, suites
+from app.api import agents, auth, automation, chat, dev, failures, runs, scenarios, suites, workspaces
 from app.config import settings
 from app.database import Base, engine
 import app.models  # noqa: F401
@@ -288,6 +288,25 @@ async def lifespan(app: FastAPI):
             "CREATE INDEX IF NOT EXISTS idx_suites_owner_user_id ON suites(owner_user_id)",
         ):
             await conn.execute(text(index_sql))
+
+        # ── Workspaces / teams ──────────────────────────────────────────
+        await conn.execute(text("ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL"))
+        await conn.execute(text("ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS description TEXT"))
+        await conn.execute(text("ALTER TABLE agents    ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL"))
+        await conn.execute(text("ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL"))
+        await conn.execute(text("ALTER TABLE suites    ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL"))
+        await conn.execute(text("ALTER TABLE test_runs ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL"))
+        for index_sql in (
+            "CREATE INDEX IF NOT EXISTS idx_workspaces_owner_user_id        ON workspaces(owner_user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id       ON workspace_members(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace_id  ON workspace_members(workspace_id)",
+            "CREATE INDEX IF NOT EXISTS idx_agents_workspace_id             ON agents(workspace_id)",
+            "CREATE INDEX IF NOT EXISTS idx_scenarios_workspace_id          ON scenarios(workspace_id)",
+            "CREATE INDEX IF NOT EXISTS idx_suites_workspace_id             ON suites(workspace_id)",
+            "CREATE INDEX IF NOT EXISTS idx_test_runs_workspace_id          ON test_runs(workspace_id)",
+        ):
+            await conn.execute(text(index_sql))
+
         await conn.run_sync(Base.metadata.create_all)
     scheduler_task = asyncio.create_task(_schedule_loop())
     yield
@@ -337,6 +356,7 @@ app.include_router(failures.router, prefix="/api/failures", tags=["failures"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(automation.router, prefix="/api/automation", tags=["automation"])
+app.include_router(workspaces.router, prefix="/api/workspaces", tags=["workspaces"])
 app.include_router(dev.router, prefix="/api/dev", tags=["dev"])
 
 sio = socketio.AsyncServer(

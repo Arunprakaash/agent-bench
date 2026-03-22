@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.api.access import assert_workspace_member, get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.models.scenario import Scenario
 from app.models.suite import Suite, suite_scenarios
@@ -57,10 +58,11 @@ async def _load_suite_response(
 
 @router.get("", response_model=list[SuiteListResponse])
 async def list_suites(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Suite)
         .options(selectinload(Suite.scenarios))
-        .where(Suite.owner_user_id == current_user.id)
+        .where(ownership_filter(Suite, current_user.id, wids))
         .order_by(Suite.updated_at.desc())
     )
     suites = result.scalars().all()
@@ -73,6 +75,7 @@ async def list_suites(current_user: User = Depends(get_current_user), db: AsyncS
             scenario_ids=[sc.id for sc in s.scenarios],
             owner_user_id=s.owner_user_id,
             owner_display_name=current_user.display_name or current_user.email,
+            workspace_id=s.workspace_id,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
@@ -86,6 +89,15 @@ async def get_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Allow workspace members to fetch a suite they can see.
+    wids = await get_user_workspace_ids(current_user.id, db)
+    result = await db.execute(
+        select(Suite)
+        .options(selectinload(Suite.scenarios))
+        .where(Suite.id == suite_id, ownership_filter(Suite, current_user.id, wids))
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Suite not found")
     return await _load_suite_response(suite_id, current_user, db)
 
 
@@ -95,7 +107,10 @@ async def create_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    suite = Suite(name=data.name, description=data.description, owner_user_id=current_user.id)
+    if data.workspace_id:
+        await assert_workspace_member(data.workspace_id, current_user.id, db)
+
+    suite = Suite(name=data.name, description=data.description, owner_user_id=current_user.id, workspace_id=data.workspace_id)
     db.add(suite)
     await db.flush()
 
@@ -177,6 +192,7 @@ async def delete_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Delete is owner-only even for workspace suites.
     result = await db.execute(select(Suite).where(Suite.id == suite_id, Suite.owner_user_id == current_user.id))
     suite = result.scalar_one_or_none()
     if not suite:

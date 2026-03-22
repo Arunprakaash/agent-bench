@@ -17,6 +17,7 @@ class AgentCreate(BaseModel):
     default_judge_model: str = "gpt-4o-mini"
     default_agent_args: dict | None = None
     tags: list[str] | None = Field(default=None)
+    workspace_id: UUID | None = None
 
 
 class AgentUpdate(BaseModel):
@@ -32,6 +33,7 @@ class AgentUpdate(BaseModel):
     default_judge_model: str | None = None
     default_agent_args: dict | None = None
     tags: list[str] | None = None
+    workspace_id: UUID | None = None
 
 
 class ArgSchemaField(BaseModel):
@@ -58,6 +60,7 @@ class AgentResponse(BaseModel):
     default_agent_args: dict | None
     arg_schema: list[ArgSchemaField] | None = None
     tags: list[str] | None
+    workspace_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -74,6 +77,7 @@ class AgentListItem(BaseModel):
     tags: list[str] | None
     owner_user_id: UUID | None = None
     owner_display_name: str | None = None
+    workspace_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 

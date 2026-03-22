@@ -10,18 +10,21 @@ class SuiteCreate(BaseModel):
     name: str
     description: str | None = None
     scenario_ids: list[UUID] = []
+    workspace_id: UUID | None = None
 
 
 class SuiteUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     scenario_ids: list[UUID] | None = None
+    workspace_id: UUID | None = None
 
 
 class SuiteResponse(BaseModel):
     id: UUID
     name: str
     description: str | None
+    workspace_id: UUID | None = None
     scenarios: list[ScenarioListResponse]
     created_at: datetime
     updated_at: datetime
@@ -37,5 +40,6 @@ class SuiteListResponse(BaseModel):
     scenario_ids: list[UUID] = []
     owner_user_id: UUID | None = None
     owner_display_name: str | None = None
+    workspace_id: UUID | None = None
     created_at: datetime
     updated_at: datetime

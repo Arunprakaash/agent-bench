@@ -23,6 +23,7 @@ import {
   FailureInbox,
   RadiusSetting,
   Settings,
+  Team,
   User,
   Bell,
 } from "@/lib/icons";
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/failures", label: "Failures", icon: FailureInbox },
   { href: "/runs", label: "Test Runs", icon: Play },
   { href: "/automation", label: "Automation", icon: RadiusSetting },
+  { href: "/workspaces", label: "Workspaces", icon: Team },
 ];
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {

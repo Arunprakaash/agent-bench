@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.api.access import get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.models.user import User
 from app.models.test_run import RunStatus, TestRun
@@ -49,11 +50,12 @@ async def list_failures(
     agent_id: UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     query = (
         select(TestRun, User.display_name, User.email)
         .outerjoin(User, User.id == TestRun.owner_user_id)
         .options(selectinload(TestRun.scenario), selectinload(TestRun.turn_results))
-        .where(TestRun.owner_user_id == current_user.id)
+        .where(ownership_filter(TestRun, current_user.id, wids))
         .where(TestRun.status.in_([RunStatus.FAILED, RunStatus.ERROR]))
         .order_by(TestRun.created_at.desc())
         .limit(limit)

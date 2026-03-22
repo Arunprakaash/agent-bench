@@ -24,6 +24,7 @@ class ScenarioCreate(BaseModel):
     name: str
     description: str | None = None
     agent_id: UUID | None = None
+    workspace_id: UUID | None = None
     agent_module: str | None = Field(
         default=None, description="Python module path, e.g. 'test_agents.interview_agent'"
     )
@@ -47,6 +48,7 @@ class ScenarioUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     agent_id: UUID | None = None
+    workspace_id: UUID | None = None
     agent_module: str | None = None
     agent_class: str | None = None
     llm_model: str | None = None
@@ -80,6 +82,7 @@ class ScenarioResponse(BaseModel):
     mock_tools: dict | None
     tags: list[str] | None
     version: int
+    workspace_id: UUID | None = None
     turns: list[TurnResponse]
     created_at: datetime
     updated_at: datetime
@@ -98,6 +101,7 @@ class ScenarioListResponse(BaseModel):
     version: int
     owner_user_id: UUID | None = None
     owner_display_name: str | None = None
+    workspace_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 

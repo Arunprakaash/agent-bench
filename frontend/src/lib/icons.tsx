@@ -45,6 +45,8 @@ import {
   BellOutlined,
   RadiusSettingOutlined,
   CalendarOutlined,
+  TeamOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 
 type IconProps = { className?: string };
@@ -100,3 +102,5 @@ export const XIcon = CloseOutlined;
 export const PanelLeftClose = MenuFoldOutlined;
 export const PanelLeftOpen = MenuUnfoldOutlined;
 export const FailureInbox = InboxOutlined;
+export const Team = TeamOutlined;
+export const UserGroupAdd = UsergroupAddOutlined;

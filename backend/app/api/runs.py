@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import async_session, get_db
+from app.api.access import get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.models.scenario import Scenario
 from app.models.suite import Suite
@@ -29,11 +30,12 @@ async def list_runs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     query = (
         select(TestRun, User.display_name, User.email)
         .outerjoin(User, User.id == TestRun.owner_user_id)
         .options(selectinload(TestRun.scenario), selectinload(TestRun.turn_results))
-        .where(TestRun.owner_user_id == current_user.id)
+        .where(ownership_filter(TestRun, current_user.id, wids))
         .order_by(TestRun.created_at.desc())
         .limit(limit)
     )
@@ -71,13 +73,14 @@ async def list_runs(
 
 @router.get("/{run_id}", response_model=TestRunResponse)
 async def get_run(run_id: UUID, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(TestRun)
         .options(
             selectinload(TestRun.turn_results),
             selectinload(TestRun.run_evaluation),
         )
-        .where(TestRun.id == run_id, TestRun.owner_user_id == current_user.id)
+        .where(TestRun.id == run_id, ownership_filter(TestRun, current_user.id, wids))
     )
     run = result.scalar_one_or_none()
     if not run:
@@ -105,6 +108,7 @@ async def create_run(
         suite_id=None,
         agent_id=scenario.agent_id,
         owner_user_id=current_user.id,
+        workspace_id=scenario.workspace_id,
         status=RunStatus.PENDING,
         config=data.config,
     )
@@ -142,6 +146,7 @@ async def create_suite_run(
             suite_id=suite.id,
             agent_id=scenario.agent_id,
             owner_user_id=current_user.id,
+            workspace_id=scenario.workspace_id or suite.workspace_id,
             status=RunStatus.PENDING,
             config=data.config,
         )

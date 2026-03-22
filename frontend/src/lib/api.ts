@@ -389,6 +389,50 @@ export interface RegressionAlert {
   created_at: string;
 }
 
+export interface WorkspaceMemberResponse {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  role: string;
+  joined_at: string;
+}
+
+export interface WorkspaceListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  my_role: string;
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_user_id: string | null;
+  my_role: string;
+  members: WorkspaceMemberResponse[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceCreate {
+  name: string;
+  description?: string | null;
+}
+
+export interface WorkspaceUpdate {
+  name?: string;
+  description?: string | null;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role?: string;
+}
+
 export const api = {
   auth: {
     me: () => request<AuthMe>("/api/auth/me"),
@@ -557,6 +601,33 @@ export const api = {
       const qs = searchParams.toString();
       return request<FailureInboxItem[]>(`/api/failures${qs ? `?${qs}` : ""}`);
     },
+  },
+  workspaces: {
+    list: () => request<WorkspaceListItem[]>("/api/workspaces"),
+    get: (id: string) => request<WorkspaceResponse>(`/api/workspaces/${id}`),
+    create: (data: WorkspaceCreate) =>
+      request<WorkspaceResponse>("/api/workspaces", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: WorkspaceUpdate) =>
+      request<WorkspaceResponse>(`/api/workspaces/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      request<void>(`/api/workspaces/${id}`, { method: "DELETE" }),
+    listMembers: (id: string) =>
+      request<WorkspaceMemberResponse[]>(`/api/workspaces/${id}/members`),
+    inviteMember: (id: string, data: InviteMemberRequest) =>
+      request<WorkspaceMemberResponse>(`/api/workspaces/${id}/members`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    removeMember: (id: string, userId: string) =>
+      request<void>(`/api/workspaces/${id}/members/${userId}`, {
+        method: "DELETE",
+      }),
   },
   automation: {
     listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),

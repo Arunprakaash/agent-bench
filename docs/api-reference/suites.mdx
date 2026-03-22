@@ -1,0 +1,48 @@
+---
+title: Suites
+description: Group scenarios and run them together.
+---
+
+## POST /api/suites
+
+Create a suite.
+
+```bash
+curl -X POST http://localhost:8000/api/suites \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Booking regression",
+    "scenario_ids": ["uuid-1", "uuid-2", "uuid-3"]
+  }'
+```
+
+---
+
+## GET /api/suites
+
+List all suites.
+
+---
+
+## GET /api/suites/{id}
+
+Get a suite with its scenarios.
+
+---
+
+## PATCH /api/suites/{id}
+
+Update a suite name or scenario list.
+
+---
+
+## DELETE /api/suites/{id}
+
+Delete a suite (does not delete its scenarios).
+
+---
+
+## POST /api/runs/suite
+
+Run all scenarios in a suite. See [Runs](/api-reference/runs) for details.

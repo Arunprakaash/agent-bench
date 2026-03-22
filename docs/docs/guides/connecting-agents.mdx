@@ -1,0 +1,151 @@
+---
+title: Connecting External Agents
+description: Integrate any HTTP service as a Bench agent with one endpoint.
+---
+
+Bench calls your agent service once per scenario turn over HTTP. You implement a single adapter endpoint — Bench handles orchestration, evaluation, and result tracking.
+
+## How it works
+
+```
+Bench                          Your App
+  │                               │
+  │── POST /your/endpoint ───────▶│
+  │   { messages, config, ... }   │
+  │                               │── run your agent
+  │◀──────────── { events } ──────│
+  │                               │
+  │  evaluate events against      │
+  │  scenario expectations        │
+```
+
+---
+
+## Step 1 — Create the agent in Bench
+
+In the UI: **Agents → New Agent**, set **Connector Type** to `HTTP Agent`.
+
+Or via API:
+
+```bash
+curl -X POST http://localhost:8000/api/agents \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Agent",
+    "provider_type": "rest_api",
+    "connection_config": {
+      "endpoint": "https://your-app.example.com/bench/run",
+      "timeout_ms": 30000,
+      "headers": { "Authorization": "Bearer YOUR_SERVICE_TOKEN" }
+    },
+    "default_llm_model": "gpt-4o-mini",
+    "default_judge_model": "gpt-4o-mini"
+  }'
+```
+
+### Connection config fields
+
+| Field | Required | Description |
+|---|---|---|
+| `endpoint` | Yes | URL Bench POSTs to for each turn |
+| `timeout_ms` | No | Per-turn timeout, default `30000` |
+| `headers` | No | Static headers (auth, content-type, etc.) |
+| `payload` | No | Static fields merged into every request |
+| `events_path` | No | Dot-path to the events array in response |
+| `test_endpoint` | No | URL for connection health check |
+
+---
+
+## Step 2 — Implement the endpoint
+
+Bench sends a POST request for each turn with this body:
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Hello" },
+    { "role": "assistant", "content": "Hi! How can I help?" },
+    { "role": "user", "content": "Book me a flight to NYC" }
+  ],
+  "config": {
+    "model": "gpt-4o-mini",
+    "agent_args": {}
+  }
+}
+```
+
+Your endpoint must return an `events` array:
+
+```json
+{
+  "events": [
+    { "type": "message", "role": "assistant", "content": "Sure, let me search for flights." },
+    { "type": "function_call", "name": "search_flights", "arguments": { "destination": "NYC" } }
+  ]
+}
+```
+
+### Event types
+
+| Type | Fields |
+|---|---|
+| `message` | `role`, `content` |
+| `function_call` | `name`, `arguments` |
+| `function_call_output` | `name`, `output` |
+| `agent_handoff` | `target_agent` |
+
+---
+
+## Example implementations
+
+<CodeGroup>
+
+```python Python (FastAPI)
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class TurnRequest(BaseModel):
+    messages: list[dict]
+    config: dict
+
+@app.post("/bench/run")
+async def run(req: TurnRequest):
+    response = await my_agent.chat(messages=req.messages)
+    return {
+        "events": [{
+            "type": "message",
+            "role": "assistant",
+            "content": response.text
+        }]
+    }
+```
+
+```typescript Node.js (Express)
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+app.post('/bench/run', async (req, res) => {
+  const { messages, config } = req.body;
+  const response = await myAgent.chat({ messages });
+  res.json({
+    events: [{
+      type: 'message',
+      role: 'assistant',
+      content: response.text,
+    }],
+  });
+});
+```
+
+</CodeGroup>
+
+---
+
+## Testing the connection
+
+After creating the agent, click **Test Connection** in the UI. Bench will hit the `test_endpoint` (or the main endpoint with an empty request) and verify it responds with a 2xx status.

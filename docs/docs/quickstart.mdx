@@ -1,0 +1,99 @@
+---
+title: Quick Start
+description: Get Bench running locally in minutes with Docker Compose.
+---
+
+## Prerequisites
+
+- Docker and Docker Compose
+- An OpenAI API key (used by the LLM judge for evaluation)
+
+## 1. Start the stack
+
+```bash
+docker compose up -d --build
+```
+
+This starts:
+
+| Service | URL |
+|---|---|
+| Frontend (Next.js) | http://localhost:3000 |
+| Backend (FastAPI) | http://localhost:8000 |
+| Swagger UI | http://localhost:8000/api/docs |
+| Adminer (DB GUI) | http://localhost:8080 |
+
+The backend applies schema migrations automatically on startup.
+
+## 2. Set your OpenAI key
+
+Add it to `backend/.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+Then restart the backend:
+
+```bash
+docker compose restart backend
+```
+
+<Note>
+  The OpenAI key is required for LLM-based evaluation. Without it, runs will error on any `message`-type expectation.
+</Note>
+
+## 3. Seed demo data (optional)
+
+Creates a demo user, example agent, several scenarios, and a suite:
+
+```bash
+docker compose exec backend python scripts/reset_and_seed.py
+```
+
+Demo login: `prakaasharun50@gmail.com` / `123456`
+
+<Warning>
+  This resets the database. Do not run against a production instance.
+</Warning>
+
+## 4. Create your first agent
+
+1. Open http://localhost:3000 and register
+2. Go to **Agents → New Agent**
+3. Set **Connector Type** to `HTTP Agent`
+4. Enter your endpoint URL and any required headers
+5. Click **Test Connection** to verify reachability
+
+See [Connecting External Agents](/guides/connecting-agents) for the full integration guide.
+
+## 5. Create a scenario
+
+1. Go to **Scenarios → New Scenario**
+2. Select your agent
+3. Add turns — each turn has a **user input** and one or more **expectations**
+4. Save and click **Run Test**
+
+### Expectation types
+
+| Type | What it checks |
+|---|---|
+| `message` | Agent replied with intent-matching text (LLM-judged) |
+| `function_call` | Agent called a specific tool |
+| `function_call_output` | Agent processed a tool result |
+| `agent_handoff` | Agent transferred to another agent |
+
+## 6. View results
+
+The run detail page shows per-turn pass/fail status, events, evaluation verdicts with judge reasoning, and latency.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Concepts" icon="book-open" href="/concepts">
+    Deep dive into how Bench works
+  </Card>
+  <Card title="CI & Automation" icon="github" href="/guides/ci-automation">
+    Schedule runs and integrate with GitHub Actions
+  </Card>
+</CardGroup>

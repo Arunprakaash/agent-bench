@@ -1,0 +1,41 @@
+---
+title: Overview
+description: Bench REST API reference.
+---
+
+**Base URL:** `http://localhost:8000`
+
+**Interactive docs (Swagger):** `http://localhost:8000/api/docs`
+
+---
+
+## Authentication
+
+All endpoints (except register and login) require a bearer token:
+
+```
+Authorization: Bearer <token>
+```
+
+Two token types are accepted:
+
+| Type | How to get | Expiry |
+|---|---|---|
+| JWT | `/api/auth/login` or `/api/auth/register` | 7 days |
+| API token | `/api/auth/api-token` | Never (until revoked) |
+
+API tokens are prefixed with `ab_` and are recommended for CI/CD use.
+
+---
+
+## Response format
+
+All responses are JSON. Errors follow this format:
+
+```json
+{
+  "detail": "Error message here"
+}
+```
+
+Standard HTTP status codes are used: `200`, `201`, `400`, `401`, `403`, `404`, `422`, `500`.

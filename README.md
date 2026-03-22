@@ -6,10 +6,6 @@ Agent testing platform. Define multi-turn conversation scenarios, run them again
 
 ---
 
-![Dashboard](docs/screenshots/readme/dashboard.png)
-
----
-
 ## What it does
 
 - **Multi-turn scenarios** — define user inputs and expectations (messages, tool calls, handoffs) per turn
@@ -20,20 +16,6 @@ Agent testing platform. Define multi-turn conversation scenarios, run them again
 - **Regression alerts** — get notified when a passing scenario starts failing
 - **External agent support** — connect any HTTP service via the HTTP Agent connector
 - **CI integration** — run suites from pipelines using API tokens
-
----
-
-## Screenshots
-
-![Scenarios](docs/screenshots/readme/scenarios-list.png)
-
-![Scenario Detail](docs/screenshots/readme/scenario-detail.png)
-
-![External Agent](docs/screenshots/readme/agent-external.png)
-
-![Run Detail](docs/screenshots/readme/run-detail.png)
-
-![Failures](docs/screenshots/readme/failures.png)
 
 ---
 

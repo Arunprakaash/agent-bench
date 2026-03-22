@@ -1,0 +1,66 @@
+---
+title: Authentication
+description: Register, login, and manage API tokens.
+---
+
+## POST /api/auth/register
+
+Create a new account.
+
+```bash
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "you@example.com", "password": "yourpassword" }'
+```
+
+**Response 201**
+```json
+{
+  "token": "<jwt>",
+  "user": { "id": "...", "email": "you@example.com", "display_name": null }
+}
+```
+
+---
+
+## POST /api/auth/login
+
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "you@example.com", "password": "yourpassword" }'
+```
+
+**Response 200**
+```json
+{ "token": "<jwt>", "user": { "id": "...", "email": "you@example.com" } }
+```
+
+---
+
+## POST /api/auth/api-token
+
+Generate a non-expiring API token for CI/CD use.
+
+```bash
+curl -X POST http://localhost:8000/api/auth/api-token \
+  -H "Authorization: Bearer $JWT_TOKEN"
+```
+
+**Response 201**
+```json
+{ "token": "ab_xxxxxxxxxxxxxxxxxxxx" }
+```
+
+---
+
+## DELETE /api/auth/api-token
+
+Revoke the current API token.
+
+```bash
+curl -X DELETE http://localhost:8000/api/auth/api-token \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response 204** (no body)

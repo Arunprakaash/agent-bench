@@ -1,0 +1,62 @@
+<svg viewBox="0 0 400 280" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="grid-s2" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#355FA7" stroke-width="0.5" opacity="0.1"/>
+    </pattern>
+    <filter id="shadow-s2" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.04"/>
+    </filter>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f0f4fb" rx="16"/>
+  <rect width="100%" height="100%" fill="url(#grid-s2)" rx="16"/>
+
+  <g transform="translate(32, 32)">
+    <!-- Stat card 1: total runs -->
+    <rect x="0" y="0" width="100" height="72" fill="#ffffff" filter="url(#shadow-s2)" rx="8"/>
+    <rect x="16" y="16" width="40" height="6" fill="#e5e7eb" rx="3"/>
+    <text x="16" y="52" font-family="sans-serif" font-size="24" font-weight="bold" fill="#1f2937">154</text>
+
+    <!-- Stat card 2: pass rate -->
+    <rect x="118" y="0" width="100" height="72" fill="#ffffff" filter="url(#shadow-s2)" rx="8"/>
+    <rect x="134" y="16" width="50" height="6" fill="#e5e7eb" rx="3"/>
+    <text x="134" y="52" font-family="sans-serif" font-size="24" font-weight="bold" fill="#10b981">78%</text>
+
+    <!-- Stat card 3: failures -->
+    <rect x="236" y="0" width="100" height="72" fill="#ffffff" filter="url(#shadow-s2)" rx="8"/>
+    <rect x="252" y="16" width="46" height="6" fill="#e5e7eb" rx="3"/>
+    <text x="252" y="52" font-family="sans-serif" font-size="24" font-weight="bold" fill="#ef4444">22</text>
+  </g>
+
+  <g transform="translate(32, 128)">
+    <!-- Wide table card -->
+    <rect x="0" y="0" width="336" height="120" fill="#ffffff" filter="url(#shadow-s2)" rx="8"/>
+
+    <!-- Row 1: pass -->
+    <rect x="16" y="16" width="48" height="20" fill="#d1fae5" rx="4"/>
+    <rect x="24" y="24" width="32" height="4" fill="#059669" rx="2" opacity="0.7"/>
+    <circle cx="84" cy="26" r="4" fill="#e5e7eb"/>
+    <rect x="100" y="23" width="130" height="6" fill="#d1d5db" rx="3"/>
+    <rect x="254" y="21" width="14" height="10" fill="#d1fae5" rx="2"/>
+    <rect x="272" y="21" width="14" height="10" fill="#d1fae5" rx="2"/>
+    <rect x="290" y="21" width="14" height="10" fill="#fee2e2" rx="2"/>
+
+    <!-- Row 2: pass -->
+    <rect x="16" y="50" width="48" height="20" fill="#d1fae5" rx="4"/>
+    <rect x="24" y="58" width="32" height="4" fill="#059669" rx="2" opacity="0.7"/>
+    <circle cx="84" cy="60" r="4" fill="#e5e7eb"/>
+    <rect x="100" y="57" width="110" height="6" fill="#d1d5db" rx="3"/>
+    <rect x="254" y="55" width="14" height="10" fill="#d1fae5" rx="2"/>
+    <rect x="272" y="55" width="14" height="10" fill="#d1fae5" rx="2"/>
+    <rect x="290" y="55" width="14" height="10" fill="#d1fae5" rx="2"/>
+
+    <!-- Row 3: pass -->
+    <rect x="16" y="84" width="48" height="20" fill="#d1fae5" rx="4"/>
+    <rect x="24" y="92" width="32" height="4" fill="#059669" rx="2" opacity="0.7"/>
+    <circle cx="84" cy="94" r="4" fill="#e5e7eb"/>
+    <rect x="100" y="91" width="150" height="6" fill="#d1d5db" rx="3"/>
+    <rect x="254" y="89" width="14" height="10" fill="#d1fae5" rx="2"/>
+    <rect x="272" y="89" width="14" height="10" fill="#fee2e2" rx="2"/>
+    <rect x="290" y="89" width="14" height="10" fill="#d1fae5" rx="2"/>
+  </g>
+</svg>

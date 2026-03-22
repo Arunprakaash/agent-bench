@@ -1,0 +1,63 @@
+---
+title: Scenarios
+description: Create and manage test scenarios.
+---
+
+## POST /api/scenarios
+
+Create a scenario.
+
+```bash
+curl -X POST http://localhost:8000/api/scenarios \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Booking flow",
+    "agent_id": "your-agent-uuid",
+    "turns": [
+      {
+        "user_input": "I want to book a flight to NYC",
+        "expectations": [
+          { "type": "function_call", "function_name": "search_flights" },
+          { "type": "message", "role": "assistant", "intent": "confirms it will search for flights" }
+        ]
+      }
+    ]
+  }'
+```
+
+---
+
+## GET /api/scenarios
+
+List all scenarios.
+
+---
+
+## GET /api/scenarios/{id}
+
+Get a scenario with full turn and expectation detail.
+
+---
+
+## PATCH /api/scenarios/{id}
+
+Update a scenario. Creates a new version.
+
+---
+
+## DELETE /api/scenarios/{id}
+
+Delete a scenario and all its runs.
+
+---
+
+## GET /api/scenarios/{id}/versions
+
+List all versions of a scenario.
+
+---
+
+## POST /api/scenarios/{id}/restore/{version}
+
+Restore a previous version of a scenario.

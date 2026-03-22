@@ -1,0 +1,71 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Bench",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#355FA7",
+    "light": "#6D8FDC",
+    "dark": "#1E3F7A",
+    "anchors": {
+      "from": "#355FA7",
+      "to": "#6D8FDC"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/arunprakaash/bench"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/docs/quickstart"
+  },
+  "anchors": [
+    {
+      "name": "API Reference",
+      "icon": "rectangle-terminal",
+      "url": "api-reference/overview"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/arunprakaash/bench"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "",
+      "pages": ["index"]
+    },
+    {
+      "group": "Getting Started",
+      "pages": ["docs/quickstart", "docs/concepts"]
+    },
+    {
+      "group": "Guides",
+      "pages": ["docs/guides/connecting-agents", "docs/guides/ci-automation"]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/overview",
+        "api-reference/authentication",
+        "api-reference/agents",
+        "api-reference/scenarios",
+        "api-reference/runs",
+        "api-reference/suites"
+      ]
+    }
+  ],
+  "modeToggle": {
+    "default": "light"
+  },
+  "footerSocials": {
+    "github": "https://github.com/arunprakaash/bench"
+  }
+}

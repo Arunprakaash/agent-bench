@@ -1,0 +1,65 @@
+---
+title: Agents
+description: Create and manage agents.
+---
+
+## POST /api/agents
+
+Create an agent.
+
+```bash
+curl -X POST http://localhost:8000/api/agents \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Agent",
+    "provider_type": "rest_api",
+    "connection_config": {
+      "endpoint": "https://your-app.example.com/bench/run",
+      "timeout_ms": 30000,
+      "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+    },
+    "default_llm_model": "gpt-4o-mini",
+    "default_judge_model": "gpt-4o-mini"
+  }'
+```
+
+---
+
+## GET /api/agents
+
+List all agents for the current user.
+
+---
+
+## GET /api/agents/{id}
+
+Get a single agent.
+
+---
+
+## PATCH /api/agents/{id}
+
+Update an agent. Accepts the same fields as POST.
+
+---
+
+## DELETE /api/agents/{id}
+
+Delete an agent.
+
+---
+
+## POST /api/agents/{id}/test-connection
+
+Test connectivity to the agent's endpoint.
+
+```bash
+curl -X POST http://localhost:8000/api/agents/$AGENT_ID/test-connection \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response**
+```json
+{ "success": true, "message": "Connection successful" }
+```

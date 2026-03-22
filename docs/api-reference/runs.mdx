@@ -1,0 +1,76 @@
+---
+title: Runs
+description: Execute scenarios and retrieve results.
+---
+
+## POST /api/runs
+
+Run a scenario. This is synchronous — it returns when the run completes.
+
+```bash
+curl -X POST http://localhost:8000/api/runs \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "scenario_id": "your-scenario-uuid" }'
+```
+
+**Request body**
+
+| Field | Required | Description |
+|---|---|---|
+| `scenario_id` | Yes | UUID of the scenario to run |
+| `agent_id` | No | Override the scenario's default agent |
+
+**Response 201** — the completed run object including `status`, `passed_turns`, `total_turns`, and per-turn results.
+
+---
+
+## POST /api/runs/suite
+
+Run all scenarios in a suite. Returns an array of run objects.
+
+```bash
+curl -X POST http://localhost:8000/api/runs/suite \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "suite_id": "your-suite-uuid" }'
+```
+
+**Response 201** — array of run objects, one per scenario in the suite.
+
+---
+
+## GET /api/runs
+
+List runs with optional filters.
+
+```bash
+curl "http://localhost:8000/api/runs?status=failed&limit=50" \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Query params:** `status`, `scenario_id`, `limit`, `offset`
+
+---
+
+## GET /api/runs/{id}
+
+Get a single run with full turn detail.
+
+```bash
+curl http://localhost:8000/api/runs/$RUN_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+---
+
+## DELETE /api/runs/{id}
+
+Delete a run.
+
+```bash
+curl -X DELETE http://localhost:8000/api/runs/$RUN_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response 204** (no body)

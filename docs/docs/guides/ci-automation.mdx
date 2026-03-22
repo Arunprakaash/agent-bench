@@ -1,0 +1,114 @@
+---
+title: CI & Automation
+description: Schedule regression runs and integrate Bench with GitHub Actions or any CI system.
+---
+
+## API Tokens
+
+For CI pipelines and scripts, use an API token instead of a JWT session token.
+
+API tokens:
+- Are prefixed with `ab_`
+- Never expire until revoked
+- Are tied to a specific user account
+
+**Generate a token** from **Profile → API Token** in the UI, or:
+
+```bash
+curl -X POST http://localhost:8000/api/auth/api-token \
+  -H "Authorization: Bearer $JWT_TOKEN"
+```
+
+Store the token as a secret in your CI environment and use it in all requests:
+
+```
+Authorization: Bearer ab_your_token_here
+```
+
+---
+
+## Running tests from CI
+
+### Run a single scenario
+
+```bash
+RUN=$(curl -s -X POST https://your-bench.example.com/api/runs \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "scenario_id": "your-scenario-uuid" }')
+
+STATUS=$(echo $RUN | jq -r '.status')
+
+if [ "$STATUS" != "passed" ]; then
+  echo "Scenario failed: $STATUS"
+  exit 1
+fi
+```
+
+### Run a suite
+
+```bash
+RUNS=$(curl -s -X POST https://your-bench.example.com/api/runs/suite \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "suite_id": "your-suite-uuid" }')
+
+FAILED=$(echo $RUNS | jq '[.[] | select(.status != "passed")] | length')
+
+if [ "$FAILED" -gt 0 ]; then
+  echo "$FAILED scenario(s) failed"
+  exit 1
+fi
+```
+
+---
+
+## GitHub Actions
+
+Add your Bench token as a repository secret (`BENCH_TOKEN`), then add a step to your workflow:
+
+```yaml
+- name: Run agent regression suite
+  run: |
+    RUNS=$(curl -s -X POST ${{ vars.BENCH_URL }}/api/runs/suite \
+      -H "Authorization: Bearer ${{ secrets.BENCH_TOKEN }}" \
+      -H "Content-Type: application/json" \
+      -d '{ "suite_id": "${{ vars.BENCH_SUITE_ID }}" }')
+
+    FAILED=$(echo $RUNS | jq '[.[] | select(.status != "passed")] | length')
+
+    if [ "$FAILED" -gt 0 ]; then
+      echo "❌ $FAILED scenario(s) failed — blocking deploy"
+      exit 1
+    fi
+
+    echo "✅ All scenarios passed"
+```
+
+---
+
+## Scheduled runs
+
+Schedule recurring runs from **Automation → Schedules** in the UI. Bench supports:
+
+| Interval | Use case |
+|---|---|
+| Every 15 minutes | High-frequency regression coverage |
+| Hourly | Standard CI complement |
+| Daily | Nightly regression baseline |
+| Weekly | Broader coverage sweeps |
+
+Scheduled runs trigger regression alerts when previously passing scenarios start failing.
+
+---
+
+## Regression alerts
+
+When a scenario that was passing starts failing, Bench creates a regression alert. Alerts appear in the **Failures** inbox.
+
+To check for new alerts via API:
+
+```bash
+curl https://your-bench.example.com/api/alerts \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```

@@ -1,0 +1,144 @@
+---
+title: Concepts
+description: Understand how agents, scenarios, runs, suites, and evaluation fit together.
+---
+
+## Overview
+
+```
+Agent → Scenario → Run → Turn Results
+          ↓
+        Suite → Suite Run
+          ↓
+       Schedule → Regression Alerts
+```
+
+---
+
+## Agent
+
+An agent is the system under test. It receives a user message and returns structured events. Bench connects over HTTP — you implement one endpoint, Bench handles the rest.
+
+Each agent stores:
+- **Connection config** — endpoint, headers, timeout
+- **Default LLM model** — used when running scenarios
+- **Default judge model** — used to evaluate expectations
+- **Default agent args** — constructor/initialization parameters
+
+Agent configuration is versioned. Every run captures an immutable snapshot of the agent config used.
+
+---
+
+## Scenario
+
+A scenario defines a multi-turn conversation and the expectations for each turn.
+
+```
+Scenario
+  └── Turn 1
+        ├── user_input: "Hello"
+        └── expectations:
+              └── { type: "message", intent: "greets the user" }
+  └── Turn 2
+        ├── user_input: "What is my order status?"
+        └── expectations:
+              ├── { type: "function_call", function_name: "lookup_order" }
+              └── { type: "message", intent: "reports the order status" }
+```
+
+### Expectation types
+
+<AccordionGroup>
+  <Accordion title="message">
+    Checks that the agent produced a message matching an intent. Evaluated semantically by an LLM judge.
+
+    ```json
+    { "type": "message", "role": "assistant", "intent": "confirms the booking" }
+    ```
+  </Accordion>
+  <Accordion title="function_call">
+    Checks that the agent called a specific tool, optionally with argument validation.
+
+    ```json
+    {
+      "type": "function_call",
+      "function_name": "search_flights",
+      "args": { "origin": "JFK", "destination": "LAX" }
+    }
+    ```
+  </Accordion>
+  <Accordion title="function_call_output">
+    Checks that the agent processed a tool result and produced a matching message.
+
+    ```json
+    { "type": "function_call_output", "intent": "summarizes the search results" }
+    ```
+  </Accordion>
+  <Accordion title="agent_handoff">
+    Checks that the agent transferred control to another agent type.
+
+    ```json
+    { "type": "agent_handoff", "target_agent": "billing_agent" }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+Scenarios are versioned. Every save creates a new version you can restore.
+
+---
+
+## Run
+
+A run executes a scenario turn by turn against an agent. Each run:
+
+- Captures immutable snapshots of the agent config and scenario version
+- Sends each turn's user input to your agent
+- Evaluates the response against that turn's expectations
+- Records a pass/fail verdict per turn with judge reasoning
+
+### Statuses
+
+| Status | Meaning |
+|---|---|
+| `pending` | Queued, not started |
+| `running` | Executing turns |
+| `passed` | All turns passed |
+| `failed` | One or more turns failed |
+| `error` | Unexpected error during execution |
+
+---
+
+## Suite
+
+A suite is a collection of related scenarios. Running a suite executes all scenarios and aggregates results.
+
+Use suites for:
+- Pre-deploy regression checks
+- Feature area grouping (e.g. "booking flow", "cancellation flow")
+- CI/CD pipelines where you need a single pass/fail signal
+
+---
+
+## LLM Evaluation
+
+Bench uses an LLM judge to evaluate `message` and `function_call_output` expectations. The judge receives:
+- The agent's actual response
+- The expected intent
+- The full conversation history
+
+It returns a `passed` / `failed` verdict with a reasoning explanation.
+
+<Note>
+  The judge model defaults to `gpt-4o-mini`. You can configure a different model per agent.
+</Note>
+
+---
+
+## Regression Alerts
+
+When a scenario that previously passed starts failing, Bench creates a regression alert. Alerts appear in the **Failures** inbox and can trigger notifications.
+
+Alerts are useful for catching:
+- Silent regressions from model updates
+- Infrastructure changes that affect agent behavior
+- Prompt changes that break downstream expectations

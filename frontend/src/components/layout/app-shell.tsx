@@ -40,7 +40,17 @@ function isPublicAuthPath(pathname: string) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sidebar:collapsed") === "true";
+  });
+
+  const toggleCollapsed = () =>
+    setCollapsed((v) => {
+      const next = !v;
+      localStorage.setItem("sidebar:collapsed", String(next));
+      return next;
+    });
   const router = useRouter();
   const pathname = usePathname();
   const [authChecking, setAuthChecking] = useState(true);
@@ -151,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setCollapsed((v) => !v)}
+                        onClick={toggleCollapsed}
                         className="h-7 w-7 p-0 shrink-0"
                         aria-label={
                           collapsed ? "Expand sidebar" : "Collapse sidebar"

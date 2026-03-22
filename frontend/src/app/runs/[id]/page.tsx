@@ -293,6 +293,15 @@ export default function RunDetailPage() {
         </div>
       )}
 
+      {/* Waterfall timing chart */}
+      {run.turn_results.some((t) => t.latency_ms != null) && (
+        <TurnWaterfall
+          turns={run.turn_results}
+          selectedIdx={selectedIdx}
+          onSelect={setSelectedIdx}
+        />
+      )}
+
       {/* Split view */}
       <div className="flex flex-1 min-h-0">
         {/* Left: Turn list */}
@@ -364,6 +373,78 @@ export default function RunDetailPage() {
               Select a turn to view details
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TurnWaterfall({
+  turns,
+  selectedIdx,
+  onSelect,
+}: {
+  turns: TurnResult[];
+  selectedIdx: number;
+  onSelect: (i: number) => void;
+}) {
+  const total = turns.reduce((s, t) => s + (t.latency_ms ?? 0), 0);
+  if (total === 0) return null;
+
+  const fmt = (ms: number) =>
+    ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${ms.toFixed(0)}ms`;
+
+  let cumulative = 0;
+
+  return (
+    <div className="px-6 py-2 border-b bg-muted/5 shrink-0">
+      <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-1.5">Turn timing</p>
+      <div className="space-y-0.5">
+        {turns.map((turn, i) => {
+          const ms = turn.latency_ms ?? 0;
+          const leftPct = (cumulative / total) * 100;
+          const widthPct = Math.max((ms / total) * 100, 0.3);
+          cumulative += ms;
+
+          const isSelected = i === selectedIdx;
+          const barColor =
+            turn.passed === true
+              ? "bg-green-500/70 dark:bg-green-500/60"
+              : turn.passed === false
+                ? "bg-red-500/70 dark:bg-red-500/60"
+                : "bg-muted-foreground/30";
+
+          return (
+            <button
+              key={turn.id}
+              type="button"
+              onClick={() => onSelect(i)}
+              className={`w-full flex items-center gap-3 rounded px-1.5 py-px text-left transition-colors ${
+                isSelected ? "bg-muted/50" : "hover:bg-muted/30"
+              }`}
+            >
+              <span className="text-[10px] text-muted-foreground/60 w-6 shrink-0 tabular-nums">
+                T{i + 1}
+              </span>
+              <div className="flex-1 relative h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                <div
+                  className={`absolute top-0 h-full rounded-full ${barColor}`}
+                  style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground/60 w-12 text-right shrink-0">
+                {ms > 0 ? fmt(ms) : "—"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Time axis */}
+      <div className="flex items-center gap-3 mt-1 pl-[28px] pr-[56px]">
+        <div className="flex-1 flex justify-between">
+          <span className="text-[9px] text-muted-foreground/40">0</span>
+          <span className="text-[9px] text-muted-foreground/40">{fmt(total / 2)}</span>
+          <span className="text-[9px] text-muted-foreground/40">{fmt(total)}</span>
         </div>
       </div>
     </div>

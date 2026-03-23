@@ -9,11 +9,13 @@ from app.models.test_run import RunStatus
 class RunCreate(BaseModel):
     scenario_id: UUID
     config: dict | None = None
+    agent_args: dict | None = None
 
 
 class SuiteRunCreate(BaseModel):
     suite_id: UUID
     config: dict | None = None
+    agent_args: dict | None = None
 
 
 class JudgeVerdict(BaseModel):

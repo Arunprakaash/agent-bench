@@ -71,6 +71,22 @@ Running 5 turns against gpt-4o endpoint...
 
 Accepts a scenario **name** or **UUID**. Exits with code `1` if any turns fail — useful for CI.
 
+### `--agent-args` — per-run enterprise params
+
+Pass a JSON object to override `agent_args` for this run. Values are merged over the scenario's defaults, letting you point the same scenario at different environments or tenants without editing anything in Bench.
+
+```bash
+# Run against staging instead of prod
+bench run --scenario booking-flow \
+  --agent-args '{"tenant_id":"acme-staging","environment":"staging"}'
+
+# Run against a specific locale
+bench run --scenario booking-flow \
+  --agent-args '{"tenant_id":"acme-prod","locale":"fr-FR"}'
+```
+
+Keys in `--agent-args` resolve the `{{placeholder}}` values in the agent's `request_template` — for example, `{{tenant_id}}` becomes `"acme-staging"`. Keys not present in `--agent-args` fall back to the scenario's saved `agent_args`, then to handler defaults.
+
 ---
 
 ## Scenarios
@@ -105,6 +121,12 @@ bench suites get regression-suite     # show scenarios inside the suite
 bench suites run regression-suite     # run all scenarios, poll and stream results
 bench suites delete regression-suite  # delete suite (not its scenarios)
 bench suites delete regression-suite -y
+```
+
+`bench suites run` also accepts `--agent-args` to override params for every scenario in the suite:
+
+```bash
+bench suites run regression-suite --agent-args '{"tenant_id":"acme-staging"}'
 ```
 
 `bench suites run` starts all scenarios in parallel and prints each result as it completes:
@@ -158,6 +180,7 @@ See the [CI & Automation guide](/docs/guides/ci-automation) for a full GitHub Ac
 |---|---|
 | `bench login` | Authenticate and save token |
 | `bench run --scenario <name\|id>` | Run a scenario |
+| `bench run --scenario <name\|id> --agent-args '<json>'` | Run with per-run agent args |
 | `bench scenarios ls` | List scenarios |
 | `bench scenarios get <name\|id>` | Inspect a scenario |
 | `bench scenarios delete <name\|id>` | Delete a scenario |
@@ -166,6 +189,7 @@ See the [CI & Automation guide](/docs/guides/ci-automation) for a full GitHub Ac
 | `bench suites ls` | List suites |
 | `bench suites get <name\|id>` | Inspect a suite |
 | `bench suites run <name\|id>` | Run a suite |
+| `bench suites run <name\|id> --agent-args '<json>'` | Run suite with per-run agent args |
 | `bench suites delete <name\|id>` | Delete a suite |
 | `bench runs ls` | List recent runs |
 | `bench runs get <id>` | Inspect a run |

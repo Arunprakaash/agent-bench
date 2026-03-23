@@ -107,6 +107,10 @@ async def create_run(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
 
+    run_config = dict(data.config or {})
+    if data.agent_args:
+        run_config["agent_args"] = data.agent_args
+
     test_run = TestRun(
         scenario_id=scenario.id,
         suite_id=None,
@@ -114,7 +118,7 @@ async def create_run(
         owner_user_id=current_user.id,
         workspace_id=scenario.workspace_id,
         status=RunStatus.PENDING,
-        config=data.config,
+        config=run_config or None,
     )
     db.add(test_run)
     await db.commit()
@@ -144,6 +148,10 @@ async def create_suite_run(
     if not suite:
         raise HTTPException(status_code=404, detail="Suite not found")
 
+    run_config = dict(data.config or {})
+    if data.agent_args:
+        run_config["agent_args"] = data.agent_args
+
     run_objs = []
     for scenario in suite.scenarios:
         test_run = TestRun(
@@ -153,7 +161,7 @@ async def create_suite_run(
             owner_user_id=current_user.id,
             workspace_id=scenario.workspace_id or suite.workspace_id,
             status=RunStatus.PENDING,
-            config=data.config,
+            config=run_config or None,
         )
         db.add(test_run)
         run_objs.append(test_run)

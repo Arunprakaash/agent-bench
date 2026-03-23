@@ -52,12 +52,26 @@ def login(email: str, password: str, url: str):
 
 @cli.command()
 @click.option("--scenario", required=True, help="Scenario name or ID.")
+@click.option(
+    "--agent-args",
+    default=None,
+    help='JSON object of per-run agent args, e.g. \'{"tenant_id":"acme-staging"}\'.',
+)
 @click.pass_context
-def run(ctx, scenario: str):
+def run(ctx, scenario: str, agent_args: str | None):
     """Run a scenario and print turn-by-turn results."""
+    import json
     from bench._ctx import make_client
 
     client = make_client(ctx)
+
+    parsed_agent_args: dict | None = None
+    if agent_args:
+        try:
+            parsed_agent_args = json.loads(agent_args)
+        except json.JSONDecodeError as e:
+            console.print(f"[red]--agent-args must be valid JSON:[/red] {e}")
+            sys.exit(1)
 
     try:
         scenario_meta = client.resolve_scenario(scenario)
@@ -78,7 +92,7 @@ def run(ctx, scenario: str):
 
     try:
         with console.status(""):
-            result = client.create_run(scenario_meta["id"])
+            result = client.create_run(scenario_meta["id"], agent_args=parsed_agent_args)
     except httpx.HTTPStatusError as e:
         console.print(f"[red]Run failed:[/red] {e.response.status_code} {e.response.text}")
         sys.exit(1)

@@ -107,7 +107,9 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
     # Create immutable agent version and execution snapshot for reproducibility.
     # Serialize per agent so parallel suite runs don't race on (agent_id, version) unique constraint.
     # Hold the lock until after commit so the new version is visible before another run allocates the next.
-    agent_kwargs = scenario.agent_args or {}
+    # Run-time agent_args (from CLI/API) override the scenario's defaults.
+    run_agent_args = (test_run.config or {}).get("agent_args") if test_run.config else None
+    agent_kwargs = {**(scenario.agent_args or {}), **(run_agent_args or {})}
     test_run.execution_snapshot = _build_execution_snapshot(scenario, agent_kwargs)
 
     if scenario.agent_id:

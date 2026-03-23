@@ -45,6 +45,18 @@ if [ "$STATUS" != "passed" ]; then
 fi
 ```
 
+Pass `agent_args` to override per-run enterprise params (tenant, environment, locale) without changing the scenario:
+
+```bash
+RUN=$(curl -s -X POST https://your-bench.example.com/api/runs \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scenario_id": "your-scenario-uuid",
+    "agent_args": { "tenant_id": "acme-staging", "environment": "staging" }
+  }')
+```
+
 ### Run a suite
 
 ```bash
@@ -61,6 +73,18 @@ if [ "$FAILED" -gt 0 ]; then
 fi
 ```
 
+`agent_args` works on suite runs too — all scenarios in the suite receive the same overrides:
+
+```bash
+RUNS=$(curl -s -X POST https://your-bench.example.com/api/runs/suite \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "suite_id": "your-suite-uuid",
+    "agent_args": { "tenant_id": "acme-staging", "environment": "staging" }
+  }')
+```
+
 ---
 
 ## GitHub Actions
@@ -73,7 +97,10 @@ Add your Bench token as a repository secret (`BENCH_TOKEN`), then add a step to 
     RUNS=$(curl -s -X POST ${{ vars.BENCH_URL }}/api/runs/suite \
       -H "Authorization: Bearer ${{ secrets.BENCH_TOKEN }}" \
       -H "Content-Type: application/json" \
-      -d '{ "suite_id": "${{ vars.BENCH_SUITE_ID }}" }')
+      -d '{
+        "suite_id": "${{ vars.BENCH_SUITE_ID }}",
+        "agent_args": { "environment": "staging", "tenant_id": "${{ vars.BENCH_TENANT_ID }}" }
+      }')
 
     FAILED=$(echo $RUNS | jq '[.[] | select(.status != "passed")] | length')
 
@@ -83,6 +110,18 @@ Add your Bench token as a repository secret (`BENCH_TOKEN`), then add a step to 
     fi
 
     echo "✅ All scenarios passed"
+```
+
+Or use the CLI directly (requires `bench` installed in your CI environment):
+
+```yaml
+- name: Run agent regression suite
+  env:
+    BENCH_URL: ${{ vars.BENCH_URL }}
+    BENCH_TOKEN: ${{ secrets.BENCH_TOKEN }}
+  run: |
+    bench suites run regression-suite \
+      --agent-args '{"environment":"staging","tenant_id":"${{ vars.BENCH_TENANT_ID }}"}'
 ```
 
 ---

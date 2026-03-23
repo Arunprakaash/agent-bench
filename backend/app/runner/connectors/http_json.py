@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re as _re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
@@ -8,6 +9,37 @@ import httpx
 
 from app.runner.connectors.base import TurnExecutionResult
 from app.runner.simple_llm_judge import evaluate_intent
+
+
+def _render_template(template: dict[str, Any], vars: dict[str, Any]) -> dict[str, Any]:
+    """Render a request_template dict by substituting {{var_name}} placeholders.
+
+    - Full-string match ``{{var_name}}`` → replaced with the typed value (preserves
+      lists/dicts/None, not just strings).
+    - Partial match like ``"turn-{{scenario_id}}"`` → string interpolation.
+    - Recurses into nested dicts.
+    """
+    result: dict[str, Any] = {}
+    _full = _re.compile(r"^\{\{(\w+)\}\}$")
+    _partial = _re.compile(r"\{\{(\w+)\}\}")
+
+    def _render_value(value: Any) -> Any:
+        if isinstance(value, dict):
+            return _render_template(value, vars)
+        if isinstance(value, str):
+            full_match = _full.match(value)
+            if full_match:
+                key = full_match.group(1)
+                return vars.get(key, value)
+            def _sub(m: _re.Match) -> str:  # type: ignore[type-arg]
+                key = m.group(1)
+                return str(vars.get(key, m.group(0)))
+            return _partial.sub(_sub, value)
+        return value
+
+    for k, v in template.items():
+        result[k] = _render_value(v)
+    return result
 
 
 def _headers_from_config(connection_config: dict[str, Any]) -> dict[str, str]:
@@ -165,15 +197,26 @@ class HttpJsonRuntime:
         if not isinstance(static_payload, dict):
             raise ValueError("connection_config.payload must be an object")
 
-        request_payload = {
-            **static_payload,
+        agent_kwargs = self._agent_kwargs if isinstance(self._agent_kwargs, dict) else {}
+        bench_vars: dict[str, Any] = {
             "user_input": user_input,
             "chat_history": self._scenario.chat_history,
             "llm_model": self._scenario.llm_model,
             "judge_model": self._scenario.judge_model,
-            "agent_args": self._agent_kwargs,
-            "mock_tools": mock_tools,
+            "agent_args": agent_kwargs,
+            # Spread individual agent_args fields so {{tenant_id}}, {{session_id}} etc.
+            # resolve directly in request_template without needing {{agent_args.tenant_id}}.
+            **agent_kwargs,
         }
+
+        if self._cfg.get("request_template"):
+            request_payload = _render_template(self._cfg["request_template"], bench_vars)
+        else:
+            request_payload = {
+                **static_payload,
+                **bench_vars,
+                "mock_tools": mock_tools,
+            }
         response = await self._client.request(method, endpoint, json=request_payload)
         response.raise_for_status()
 

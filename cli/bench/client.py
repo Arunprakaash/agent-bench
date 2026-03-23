@@ -106,9 +106,12 @@ class BenchClient:
     def delete_suite(self, suite_id: str) -> None:
         self._delete(f"/api/suites/{suite_id}")
 
-    def run_suite(self, suite_id: str) -> list:
+    def run_suite(self, suite_id: str, agent_args: dict | None = None) -> list:
         """Start a suite run; returns list of pending TestRunListResponse."""
-        return self._post("/api/runs/suite", {"suite_id": suite_id}, timeout=30)
+        body: dict = {"suite_id": suite_id}
+        if agent_args:
+            body["agent_args"] = agent_args
+        return self._post("/api/runs/suite", body, timeout=30)
 
     # ------------------------------------------------------------------
     # Runs
@@ -128,6 +131,9 @@ class BenchClient:
     def delete_run(self, run_id: str) -> None:
         self._delete(f"/api/runs/{run_id}")
 
-    def create_run(self, scenario_id: str) -> dict:
+    def create_run(self, scenario_id: str, agent_args: dict | None = None) -> dict:
         """Trigger a scenario run and block until complete."""
-        return self._post("/api/runs", {"scenario_id": scenario_id}, timeout=300)
+        body: dict = {"scenario_id": scenario_id}
+        if agent_args:
+            body["agent_args"] = agent_args
+        return self._post("/api/runs", body, timeout=300)

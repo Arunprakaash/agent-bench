@@ -7,22 +7,24 @@ There are two ways to connect your agent to Bench:
 
 | | SDK decorator | Manual HTTP |
 |---|---|---|
-| Code change | One decorator on your existing endpoint | Implement a new endpoint |
-| Field mapping | Not needed — auto-inferred | You handle it |
+| Code change | One decorator on your existing endpoint | Implement endpoint yourself |
+| Field mapping | Auto-inferred from signature, optional override | You handle it |
 | Registration | Automatic on startup | Manual via UI or API |
-| Best for | Python / Node.js services | Any language, full control |
+| Best for | Python services (FastAPI, Flask) | Any language, full control |
 
 ---
 
 ## Option 1 — SDK decorator (recommended)
 
-The SDK wraps your **existing endpoint**. It introspects your function signature, auto-registers the agent in Bench, and normalizes your response to the event format Bench expects. Your handler code is unchanged.
+The SDK wraps your **existing endpoint**. It introspects your function signature, auto-registers the agent in Bench with the right `request_template`, and normalizes your response to Bench's event format. Your handler code is unchanged.
 
-### Python (FastAPI)
+### Install
 
 ```bash
 pip install bench-sdk
 ```
+
+### Python (FastAPI)
 
 ```python
 import os
@@ -36,103 +38,58 @@ app = FastAPI()
     bench_url=os.environ["BENCH_URL"],
     bench_token=os.environ["BENCH_TOKEN"],
     name="My Booking Agent",
+    endpoint="https://your-service.example.com/agent/run",
 )
 async def run(query: str, tenant_id: str = "acme"):
     response = await my_llm.chat(query)
-    return { "reply": response.text }
+    return {"reply": response.text}
 ```
 
-That's it. On startup the SDK:
-
-1. Inspects `run(query, tenant_id)` — infers `query` maps to `user_input`, `tenant_id` is a static field
-2. Calls `POST /api/agents` with the inferred `request_template` — no manual config
-3. Bench now knows to send `{ "query": "...", "tenant_id": "acme" }` — your handler receives its native format
-
-When Bench runs a scenario turn it calls your existing `/agent/run` exactly as any real client would. No separate endpoint, no translation layer at runtime.
+On startup the SDK:
+1. Inspects `run(query, tenant_id)` — infers `query` → `{{user_input}}`, `tenant_id` → static `"acme"`
+2. Registers the agent in Bench with that `request_template`
+3. Bench sends `{ "query": "...", "tenant_id": "acme" }` — your handler receives its native format
 
 ### Python (Flask)
 
 ```python
-from bench_sdk.adapters.flask import bench_agent
+import os
+from flask import Flask
+from bench_sdk import bench_agent
 
-@app.route("/agent/run", methods=["POST"])
-@bench_agent(bench_url=..., bench_token=..., name="My Agent")
+app = Flask(__name__)
+
+@app.post("/agent/run")
+@bench_agent(
+    bench_url=os.environ["BENCH_URL"],
+    bench_token=os.environ["BENCH_TOKEN"],
+    name="My Agent",
+    endpoint="https://your-service.example.com/agent/run",
+)
 def run(query: str, session_id: str = "default"):
     response = my_llm.chat(query)
-    return { "reply": response.text }
-```
-
-### Node.js (Express)
-
-```bash
-npm install @bench-ai/sdk
-```
-
-```typescript
-import { benchAgent } from '@bench-ai/sdk/express'
-
-app.post('/agent/run', benchAgent({
-  benchUrl: process.env.BENCH_URL,
-  benchToken: process.env.BENCH_TOKEN,
-  name: 'My Booking Agent',
-}), async (req, res) => {
-  const { query, tenantId } = req.body
-  const response = await myLLM.chat(query)
-  res.json({ reply: response.text })
-})
-```
-
-### Node.js (Next.js)
-
-```typescript
-import { benchAgent } from '@bench-ai/sdk/next'
-
-export const POST = benchAgent({
-  benchUrl: process.env.BENCH_URL!,
-  benchToken: process.env.BENCH_TOKEN!,
-  name: 'My Booking Agent',
-})(async (req) => {
-  const { query } = await req.json()
-  const response = await myLLM.chat(query)
-  return Response.json({ reply: response.text })
-})
+    return {"reply": response.text}
 ```
 
 ---
 
-### Response inference
+### Auto-inference — how the SDK reads your signature
 
-The SDK auto-detects your response shape — no `output_map` needed for common patterns:
+The SDK maps parameter names to Bench fields automatically:
 
-| Your response | Bench event produced |
+| Your parameter name | Inferred as |
 |---|---|
-| `{ "reply": "..." }` | `message` |
-| `{ "text": "..." }` | `message` |
-| `{ "content": "..." }` | `message` |
-| `{ "message": "..." }` | `message` |
-| `{ "tool_calls": [...] }` | `function_call` per item |
-| `{ "actions": [...] }` | `function_call` per item |
+| `query`, `message`, `input`, `text`, `prompt`, `msg` | `{{user_input}}` |
+| `messages`, `history`, `context`, `chat_history`, `conversation` | `{{chat_history}}` |
+| `model`, `llm_model`, `llm` | `{{llm_model}}` |
+| `session_id`, `scenario_id`, `session`, `request_id` | `{{scenario_id}}` |
+| Any other param | `{{param_name}}` — resolved from `agent_args` at run time |
 
-For non-standard shapes, provide a normalizer:
+If no parameter matches `user_input`, the first `str` parameter is used as the fallback.
 
-```python
-def to_events(response: dict) -> list:
-    events = []
-    if response.get("output"):
-        events.append({ "type": "message", "role": "assistant", "content": response["output"]["text"] })
-    for tool in response.get("tool_invocations", []):
-        events.append({ "type": "function_call", "name": tool["id"], "arguments": tool["params"] })
-    return events
+Enterprise-specific params like `tenant_id`, `session_id`, `environment` fall into the last row — they become `{{tenant_id}}` etc. in the request template and are resolved from `agent_args` on each run. This means they are **not hardcoded in the agent config** — every scenario or suite run can supply different values.
 
-@bench_agent(..., normalizer=to_events)
-async def run(query: str): ...
-```
-
----
-
-### Pydantic / typed request bodies
-
-If your handler takes a Pydantic model, the SDK inspects the model's fields instead of the function signature:
+**Pydantic models** are fully supported — the SDK inspects the model's fields instead of the function signature:
 
 ```python
 from pydantic import BaseModel
@@ -143,48 +100,183 @@ class AgentRequest(BaseModel):
     session_id: str = "default"
 
 @app.post("/agent/run")
-@bench_agent(bench_url=..., bench_token=..., name="My Agent")
+@bench_agent(bench_url=..., bench_token=..., name="My Agent", endpoint=...)
 async def run(req: AgentRequest):
     response = await my_llm.chat(req.query)
-    return { "reply": response.text }
+    return {"reply": response.text}
 ```
 
-SDK infers: `query` → `{{user_input}}`, `tenant_id` → static `"acme"`, `session_id` → `{{scenario_id}}`. Same result.
+---
+
+### `input_map` — explicit input field mapping
+
+When your parameter names don't match the known patterns, or you need full control over what Bench sends:
+
+```python
+@app.post("/agent/run")
+@bench_agent(
+    bench_url=..., bench_token=..., name="My Agent", endpoint=...,
+    input_map={
+        "query":      "user_input",    # sends {{user_input}} as "query"
+        "context":    "chat_history",  # sends {{chat_history}} as "context"
+        "tenant_id":  "tenant_id",     # {{tenant_id}} — resolved from agent_args per run
+        "env":        "environment",   # {{environment}} — resolved from agent_args per run
+    },
+)
+async def run(query: str, context: list, tenant_id: str, env: str):
+    ...
+```
+
+Values that match known Bench field names (`user_input`, `chat_history`, `llm_model`, `judge_model`, `scenario_id`, `agent_args`) become `{{placeholders}}` filled by Bench. Everything else becomes a `{{placeholder}}` filled from `agent_args` at run time — set per scenario, not hardcoded in the agent config.
+
+---
+
+### `agent_args` — per-run enterprise params
+
+Enterprise-specific values like `tenant_id`, `environment`, `locale` should live in `agent_args`, not in the agent config. This keeps the agent registration minimal and lets every scenario or suite run supply its own values.
+
+**Set defaults on the agent** (used when a scenario doesn't override):
+
+```bash
+curl -X PUT http://localhost:8000/api/agents/$AGENT_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "default_agent_args": {
+      "tenant_id": "acme-prod",
+      "environment": "production"
+    }
+  }'
+```
+
+**Override per scenario** (e.g. run the same agent against staging):
+
+```bash
+curl -X PUT http://localhost:8000/api/scenarios/$SCENARIO_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_args": {
+      "tenant_id": "acme-staging",
+      "environment": "staging"
+    }
+  }'
+```
+
+At run time, Bench spreads `agent_args` into the request template. A handler with:
+
+```python
+async def run(query: str, tenant_id: str, environment: str = "production"):
+```
+
+receives the scenario's `agent_args` values directly — `tenant_id` and `environment` are populated from whatever the scenario/suite supplies, with the handler default as a fallback if a key is absent.
+
+This also works without the SDK — just use `{{tenant_id}}` directly in `connection_config.request_template`:
+
+```json
+{
+  "endpoint": "https://acme.com/agent/run",
+  "request_template": {
+    "query":       "{{user_input}}",
+    "context":     "{{chat_history}}",
+    "tenant_id":   "{{tenant_id}}",
+    "environment": "{{environment}}"
+  }
+}
+```
+
+---
+
+### Response inference — how the SDK reads your response
+
+The SDK auto-detects common response shapes — no `output_map` needed for these:
+
+| Your response | Bench event produced |
+|---|---|
+| `{ "reply": "..." }` | `message` |
+| `{ "text": "..." }` | `message` |
+| `{ "content": "..." }` | `message` |
+| `{ "message": "..." }` | `message` |
+| `{ "answer": "..." }` | `message` |
+| `{ "tool_calls": [...] }` | `function_call` per item |
+| `{ "actions": [...] }` | `function_call` per item |
+| `{ "function_calls": [...] }` | `function_call` per item |
+| `{ "handoff": "..." }` | `agent_handoff` |
+| `{ "transfer_to": "..." }` | `agent_handoff` |
+| `{ "events": [...] }` | passed through as-is |
+| plain `str` | `message` |
+
+---
+
+### `output_map` — explicit output field mapping
+
+When your response fields aren't in the auto-detected set:
+
+```python
+@bench_agent(
+    ...,
+    output_map={
+        "reply":            "message",        # response["reply"] → message event
+        "tool_invocations": "function_calls", # response["tool_invocations"] → function_call events
+        "transfer":         "agent_handoff",  # response["transfer"] → agent_handoff event
+    },
+)
+async def run(query: str): ...
+```
+
+For nested or non-standard shapes, pass a callable:
+
+```python
+def to_events(response: dict) -> list:
+    return [
+        {"type": "message", "role": "assistant", "content": response["output"]["text"]},
+        *[
+            {"type": "function_call", "name": t["id"], "arguments": t["params"]}
+            for t in response.get("tool_invocations", [])
+        ],
+    ]
+
+@bench_agent(..., output_map=to_events)
+async def run(query: str): ...
+```
 
 ---
 
 ### Registration modes
 
 ```python
-# Default — registers on first startup
+# Default — registers with Bench on startup
 @bench_agent(..., register="startup")
 
-# Lazy — writes .bench/agent.json, prints curl command, doesn't call Bench
+# Lazy — prints config to stdout, doesn't call Bench
+# Use this when you don't want outbound calls on boot (e.g. prod)
 @bench_agent(..., register="lazy")
 
-# Manual — you control when registration happens
-agent = BenchAgent(bench_url=..., bench_token=..., name="...")
+# Manual — register explicitly when you're ready
+from bench_sdk import BenchAgent
+
+agent = BenchAgent(
+    bench_url=..., bench_token=..., name="My Agent", endpoint=..., register="manual"
+)
 
 @app.post("/agent/run")
-@agent.endpoint()
+@agent
 async def run(query: str): ...
 
-# Call explicitly — e.g. in a post-deploy hook
-await agent.register()
+# Call this after deploy, in a health check hook, etc.
+await agent.register(run)
 ```
-
-Lazy mode is useful for production environments where you don't want the agent making outbound calls to Bench on boot.
 
 ---
 
 ### Effect on existing traffic
 
-The SDK only activates on requests that carry the `X-Bench-Run: true` header, which Bench adds automatically. All other traffic — real users, other services — passes through your handler completely untouched.
+The SDK only activates on requests that carry the `X-Bench-Run: true` header, which Bench sets automatically. All other traffic — real users, other services — passes through your handler completely untouched.
 
 ```
-Real user   → POST /agent/run   → your handler runs normally, response returned as-is
-Bench       → POST /agent/run   → SDK intercepts response, normalizes to events, returned to Bench
-              X-Bench-Run: true
+Real user   → POST /agent/run                → handler runs, response returned as-is
+Bench       → POST /agent/run                → handler runs, SDK wraps response as events
+               X-Bench-Run: true
 ```
 
 ---
@@ -223,14 +315,33 @@ curl -X POST http://localhost:8000/api/agents \
 | `endpoint` | Yes | URL Bench POSTs to for each turn |
 | `timeout_ms` | No | Per-turn timeout in ms, default `30000` |
 | `headers` | No | Static headers sent on every request |
+| `request_template` | No | Custom payload shape. Use `{{user_input}}`, `{{chat_history}}` for Bench fields; `{{tenant_id}}`, `{{environment}}` etc. for values supplied via `agent_args` per run |
 | `events_path` | No | Dot-path to events array in response, default `"events"` |
 | `test_endpoint` | No | URL used for the Test Connection health check |
+
+### Using `request_template` without the SDK
+
+If your endpoint has a custom request shape, configure it directly — no SDK required:
+
+```json
+{
+  "endpoint": "https://acme.com/agent/run",
+  "request_template": {
+    "query":      "{{user_input}}",
+    "context":    "{{chat_history}}",
+    "tenant_id":  "acme-corp",
+    "session_id": "{{scenario_id}}"
+  }
+}
+```
+
+Bench renders the template before each call — `{{user_input}}` is replaced with the scenario turn's user message, `{{chat_history}}` with the full conversation so far. Static values are sent verbatim.
 
 ---
 
 ### Step 2 — Implement the endpoint
 
-Bench sends this body on each turn:
+When `request_template` is **not** set, Bench sends this fixed payload:
 
 ```json
 {
@@ -288,7 +399,7 @@ async def run(req: TurnRequest):
     )
     return {
         "events": [
-            { "type": "message", "role": "assistant", "content": response.text }
+            {"type": "message", "role": "assistant", "content": response.text}
         ]
     }
 ```
@@ -326,9 +437,7 @@ type TurnRequest struct {
 func agentHandler(w http.ResponseWriter, r *http.Request) {
   var req TurnRequest
   json.NewDecoder(r.Body).Decode(&req)
-
   text := myAgent.Chat(req.UserInput, req.ChatHistory)
-
   json.NewEncoder(w).Encode(map[string]any{
     "events": []map[string]any{
       {"type": "message", "role": "assistant", "content": text},
@@ -343,7 +452,7 @@ func agentHandler(w http.ResponseWriter, r *http.Request) {
 
 ## Testing the connection
 
-After registering (either via SDK auto-registration or manually), click **Test Connection** in the UI. Bench sends a GET to the `test_endpoint` or a minimal POST to the main endpoint and verifies a 2xx response.
+After registering, click **Test Connection** in the UI. Bench sends a request to your endpoint and verifies a 2xx response.
 
 Via CLI:
 

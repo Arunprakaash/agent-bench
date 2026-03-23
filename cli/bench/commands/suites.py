@@ -80,10 +80,26 @@ def delete(ctx, name_or_id: str, yes: bool):
 
 @suites_group.command("run")
 @click.argument("name_or_id")
+@click.option(
+    "--agent-args",
+    default=None,
+    help='JSON object of per-run agent args, e.g. \'{"tenant_id":"acme-staging"}\'.',
+)
 @click.pass_context
-def run(ctx, name_or_id: str):
+def run(ctx, name_or_id: str, agent_args: str | None):
     """Run all scenarios in a suite and stream results."""
+    import json
+
     client = make_client(ctx)
+
+    parsed_agent_args: dict | None = None
+    if agent_args:
+        try:
+            parsed_agent_args = json.loads(agent_args)
+        except json.JSONDecodeError as e:
+            console.print(f"[red]--agent-args must be valid JSON:[/red] {e}")
+            sys.exit(1)
+
     try:
         suite = client.resolve_suite(name_or_id)
     except httpx.HTTPStatusError as e:
@@ -100,7 +116,7 @@ def run(ctx, name_or_id: str):
     )
 
     try:
-        pending_runs = client.run_suite(suite["id"])
+        pending_runs = client.run_suite(suite["id"], agent_args=parsed_agent_args)
     except httpx.HTTPStatusError as e:
         console.print(f"[red]{e.response.status_code}[/red] {e.response.text}")
         sys.exit(1)

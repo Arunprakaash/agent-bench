@@ -48,7 +48,7 @@
     },
     {
       "group": "Guides",
-      "pages": ["docs/guides/connecting-agents", "docs/guides/ci-automation", "docs/guides/cli"]
+      "pages": ["docs/guides/connecting-agents", "docs/guides/ci-automation", "docs/guides/cli", "docs/guides/mcp"]
     },
     {
       "group": "API Reference",

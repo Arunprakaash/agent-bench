@@ -1,0 +1,126 @@
+---
+title: "MCP Server"
+description: "Use Bench from Claude Desktop or any MCP client — run scenarios, inspect results, and browse your workspace conversationally."
+---
+
+The Bench MCP server exposes your entire Bench workspace as tools that any [Model Context Protocol](https://modelcontextprotocol.io) client can call. The most common use case is Claude Desktop: ask Claude to run a scenario, check for failures, or kick off a suite run — all from a conversation.
+
+---
+
+## Installation
+
+The MCP server lives in the `mcp/` directory of the repo.
+
+```bash
+cd mcp
+uv venv
+uv pip install -e .
+```
+
+Requires Python 3.11+.
+
+---
+
+## Authentication
+
+The server needs a Bench API token. Generate one from the Bench UI under **Profile → API Token**, then copy the `ab_…` value.
+
+Set two environment variables:
+
+```bash
+BENCH_API_URL=http://localhost:8000   # your Bench backend URL
+BENCH_API_TOKEN=ab_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+## Claude Desktop setup
+
+Add the server to your Claude Desktop config at:
+
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+```json
+{
+  "mcpServers": {
+    "bench": {
+      "command": "/path/to/agent-bench/mcp/.venv/bin/bench-mcp",
+      "env": {
+        "BENCH_API_URL": "http://localhost:8000",
+        "BENCH_API_TOKEN": "ab_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    }
+  }
+}
+```
+
+Replace `/path/to/agent-bench` with the absolute path to your repo clone. Restart Claude Desktop after saving.
+
+---
+
+## Available tools
+
+Once connected, Claude can call any of these tools on your behalf:
+
+| Tool | Description |
+|---|---|
+| `list_workspaces` | List all workspaces you belong to |
+| `list_agents` | List agents, optionally filtered by workspace |
+| `list_scenarios` | List scenarios, optionally filtered by workspace |
+| `list_suites` | List test suites, optionally filtered by workspace |
+| `run_scenario` | Run a single scenario and return the full result immediately |
+| `run_suite` | Trigger a suite run (all scenarios run in parallel) |
+| `get_run` | Get the full result of a run including per-turn verdicts |
+| `list_runs` | List recent runs with optional filters |
+| `list_failures` | List the failures inbox |
+
+---
+
+## Example prompts
+
+```
+Run the "booking-flow" scenario and tell me which turns failed.
+```
+
+```
+Are there any new failures in my workspace since yesterday?
+```
+
+```
+Run the full regression suite and summarise the results when it's done.
+```
+
+```
+List my scenarios and find any that haven't been run in the last week.
+```
+
+---
+
+## Running the server manually
+
+You can also start the server directly to test it or integrate it with other MCP clients:
+
+```bash
+# stdio transport (default — used by Claude Desktop)
+bench-mcp
+
+# or via the module
+python -m bench_mcp.server
+```
+
+The server communicates over stdio using the MCP protocol.
+
+---
+
+## `run_scenario` vs `run_suite`
+
+`run_scenario` is **synchronous** — it waits for the run to complete and returns the full result, including per-turn verdicts, in one shot.
+
+`run_suite` is **asynchronous** — it starts all scenarios in parallel and returns immediately with stubs in `pending` status. Poll individual runs with `get_run(run_id)` or use `list_runs(suite_id=...)` to track progress.
+
+```
+# Ask Claude to poll for you:
+"Run the regression suite and keep checking until all runs are done, then give me a summary."
+```

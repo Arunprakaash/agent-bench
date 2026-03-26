@@ -41,6 +41,7 @@ function isPublicAuthPath(pathname: string) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const [benchOpen, setBenchOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("sidebar:collapsed") === "true";
@@ -192,9 +193,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <main className="flex-1 overflow-y-auto bg-muted/10">
               {children}
             </main>
+            <BenchAIPanel open={benchOpen} onOpen={() => setBenchOpen(true)} onClose={() => setBenchOpen(false)} />
           </div>
         </div>
-        <BenchAIPanel />
         </WorkspaceGate>
       </BreadcrumbsProvider>
       </WorkspaceProvider>
@@ -204,12 +205,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function WorkspaceGate({ children }: { children: React.ReactNode }) {
   const { loading } = useWorkspace();
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {loading && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      )}
+    </>
+  );
 }

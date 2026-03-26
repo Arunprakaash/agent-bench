@@ -46,6 +46,16 @@ class TurnInput(BaseModel):
     expectations: list[TurnExpectation]
 
 
+class ElicitationField(BaseModel):
+    name: str
+    label: str
+    type: str  # "string" | "number" | "boolean" | "select" | "email" | "textarea"
+    description: str | None = None
+    options: list[str] | None = None  # for select type
+    required: bool = True
+    placeholder: str | None = None
+
+
 # ─── Context ──────────────────────────────────────────────────────────────────
 
 @dataclass
@@ -74,7 +84,13 @@ Guidelines for great scenarios:
 (e.g. "Agent asks for the user's travel dates"). The LLM judge evaluates intent — not exact strings.
 - Use expectation type "message" for conversational turns.
 - Probe the agent several times before writing expectations so you understand its real behavior.
-- Always confirm with the user before creating anything."""
+- Always confirm with the user before creating anything.
+
+Using elicitation:
+- When you need specific structured details from the user (agent purpose, test parameters, persona details), \
+call elicitate to show them an inline form instead of asking in plain text.
+- Use elicitation for initial information gathering (e.g., agent name, type, target behaviors).
+- Keep forms short — 2–4 fields maximum. Ask for more in follow-up elicitations if needed."""
 
 
 # ─── Tools ────────────────────────────────────────────────────────────────────
@@ -273,13 +289,36 @@ async def create_suite(
         return json.dumps({"error": str(e)})
 
 
+@function_tool
+async def elicitate(
+    wrapper: RunContextWrapper[BenchContext],
+    message: str,
+    fields: list[ElicitationField],
+) -> str:
+    """Request structured information from the user through an inline form in the chat UI.
+    Use this instead of asking questions in plain text when you need specific structured details.
+    The conversation pauses until the user submits the form.
+
+    Args:
+        message: Clear explanation of what information you need and why.
+        fields: Form fields to collect. Each needs: name (snake_case identifier),
+            label (human-readable), type (string/number/boolean/select/email/textarea).
+            For select type, include options. For string/email/textarea, include placeholder.
+    """
+    return json.dumps({
+        "_elicitation": True,
+        "message": message,
+        "fields": [f.model_dump() for f in fields],
+    })
+
+
 # ─── Agent definition ─────────────────────────────────────────────────────────
 
 _bench_agent = Agent(
     name="Bench AI",
     model="gpt-4o",
     instructions=SYSTEM_PROMPT,
-    tools=[list_agents, get_agent, probe_agent, list_scenarios, create_scenario, list_suites, create_suite],
+    tools=[list_agents, get_agent, probe_agent, list_scenarios, create_scenario, list_suites, create_suite, elicitate],
 )
 
 
@@ -293,6 +332,7 @@ _TOOL_LABELS: dict[str, str] = {
     "create_scenario": "Creating scenario…",
     "list_suites": "Listing suites…",
     "create_suite": "Creating suite…",
+    "elicitate": "Requesting information…",
 }
 
 
@@ -322,7 +362,12 @@ async def _stream(messages: list[dict], workspace_id: str | None, user: User, db
                     raw = getattr(item, "raw_item", None)
                     tool_name = getattr(raw, "name", "") if raw else ""
                     label = _TOOL_LABELS.get(tool_name, f"Running {tool_name}…")
-                    yield f"data: {json.dumps({'type': 'tool_start', 'name': tool_name, 'label': label})}\n\n"
+                    raw_args = getattr(raw, "arguments", None) if raw else None
+                    try:
+                        tool_input = json.loads(raw_args) if raw_args else {}
+                    except Exception:
+                        tool_input = {"raw": str(raw_args)} if raw_args else {}
+                    yield f"data: {json.dumps({'type': 'tool_start', 'name': tool_name, 'label': label, 'input': tool_input})}\n\n"
 
                 elif item.type == "tool_call_output_item":
                     output = getattr(item, "output", "{}")
@@ -330,7 +375,10 @@ async def _stream(messages: list[dict], workspace_id: str | None, user: User, db
                         parsed = json.loads(output)
                     except Exception:
                         parsed = {"raw": str(output)}
-                    yield f"data: {json.dumps({'type': 'tool_done', 'result': parsed})}\n\n"
+                    if isinstance(parsed, dict) and parsed.get("_elicitation"):
+                        yield f"data: {json.dumps({'type': 'elicitation', 'message': parsed.get('message', ''), 'fields': parsed.get('fields', [])})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'type': 'tool_done', 'result': parsed})}\n\n"
 
     except Exception as e:
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"

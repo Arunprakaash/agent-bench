@@ -4,207 +4,295 @@ description: "Test your AI agents before they break in prod"
 mode: "custom"
 ---
 
-{/* Hide dark mode toggle on landing page only — cleaned up by React on navigation */}
 <style>{`
-  button[aria-label="Toggle dark mode"],
-  button[aria-label="Toggle color scheme"],
-  button[aria-label="Switch to dark mode"],
-  button[aria-label="Switch to light mode"],
-  [data-testid="dark-mode-toggle"],
-  [data-testid="theme-toggle"] {
-    display: none !important;
-  }
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Unbounded:wght@700;800;900&display=swap');
+
+.tl { opacity: 0; animation: tl-in 0.22s ease forwards; }
+.tl0 { animation-delay: 0.3s; }
+.tl1 { animation-delay: 0.65s; }
+.tl2 { animation-delay: 1.1s; }
+.tl3 { animation-delay: 1.55s; }
+.tl4 { animation-delay: 1.95s; }
+.tl5 { animation-delay: 2.35s; }
+.tl6 { animation-delay: 2.75s; }
+.tl7 { animation-delay: 3.2s; }
+@keyframes tl-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bdot-pulse { animation: bdot 2.4s ease-in-out infinite; }
+@keyframes bdot {
+  0%,100% { opacity:1; }
+  50%      { opacity:0.35; }
+}
 `}</style>
 
-<div style={{fontFamily:"inherit"}}>
+<div style={{background:"#ffffff",color:"#0D1829",fontFamily:"'IBM Plex Sans',-apple-system,sans-serif",minHeight:"100vh"}}>
 
-{/* ===== HERO ===== */}
-<div style={{background:"linear-gradient(180deg,#ffffff 0%,#ebf0fa 45%,#f8fafc 100%)",padding:"96px 32px 64px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-  <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(lab(40.8025 9.52566 -42.921 / 0.04) 1px,transparent 1px),linear-gradient(90deg,lab(40.8025 9.52566 -42.921 / 0.04) 1px,transparent 1px)",backgroundSize:"60px 60px",pointerEvents:"none"}} />
-  <div style={{position:"relative",zIndex:1,maxWidth:"820px",margin:"0 auto"}}>
-    <div style={{display:"inline-block",fontSize:"0.72rem",fontWeight:500,letterSpacing:"0.03em",color:"#64748b",border:"1px solid #e2e8f0",padding:"4px 14px",borderRadius:"100px",marginBottom:"28px",background:"white"}}>
-      Open Source · Free to self-host
-    </div>
-    <h1 style={{fontSize:"clamp(2.4rem,6vw,3.8rem)",fontWeight:700,lineHeight:1.1,letterSpacing:"-0.025em",margin:"0 0 20px",color:"#0f172a"}}>
-      {"Test your AI agents"}
-      <br/>
-      {"before they break in prod"}
-    </h1>
-    <p style={{fontSize:"1.1rem",lineHeight:1.75,color:"#64748b",maxWidth:"500px",margin:"0 auto 36px",fontWeight:400}}>
-      {"Define multi-turn conversation scenarios, run them against your agent, and catch regressions before they reach users."}
-    </p>
-    <div style={{display:"flex",gap:"12px",justifyContent:"center",flexWrap:"wrap"}}>
-      <a href="/docs/quickstart" style={{padding:"11px 28px",background:"lab(40.8025 9.52566 -42.921)",color:"#fff",borderRadius:"8px",fontWeight:500,fontSize:"0.95rem",textDecoration:"none",letterSpacing:"0.01em"}}>
-        {"Get started →"}
-      </a>
-      <a href="https://github.com/arunprakaash/bench" style={{padding:"11px 24px",border:"1px solid #e2e8f0",color:"#334155",borderRadius:"8px",fontWeight:500,fontSize:"0.95rem",textDecoration:"none",background:"white"}}>
-        {"View on GitHub"}
-      </a>
-    </div>
+{/* ── NAV ── */}
+<nav style={{position:"sticky",top:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 52px",height:58,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(14px)",borderBottom:"1px solid #E2E8F5"}}>
+  <a href="/" style={{fontFamily:"'Unbounded',sans-serif",fontSize:"0.9rem",fontWeight:800,color:"#0D1829",textDecoration:"none",letterSpacing:"-0.02em"}}>
+    bench<span style={{color:"#355FA7"}}>.</span>
+  </a>
+  <div style={{display:"flex",alignItems:"center",gap:6}}>
+    <a href="/docs/quickstart" style={{color:"#5A6E8C",textDecoration:"none",fontSize:"0.85rem",padding:"6px 14px",borderRadius:6}}>Docs</a>
+    <a href="https://github.com/arunprakaash/bench" style={{color:"#5A6E8C",textDecoration:"none",fontSize:"0.85rem",padding:"6px 14px",borderRadius:6}}>GitHub</a>
+    <a href="/docs/quickstart" style={{background:"#355FA7",color:"#fff",fontWeight:700,fontSize:"0.78rem",padding:"7px 18px",borderRadius:6,textDecoration:"none",letterSpacing:"0.01em"}}>Get started</a>
   </div>
+</nav>
 
-  {/* Terminal window */}
-  <div style={{maxWidth:"700px",margin:"52px auto 0",position:"relative",zIndex:1}}>
-    <div style={{background:"#0d1117",borderRadius:"12px",overflow:"hidden",boxShadow:"0 8px 40px lab(40.8025 9.52566 -42.921 / 0.12),0 0 0 1px lab(40.8025 9.52566 -42.921 / 0.1)",fontFamily:"'Fira Code','Fira Mono',Menlo,Consolas,monospace",fontSize:"0.82rem",textAlign:"left"}}>
-      <div style={{display:"flex",alignItems:"center",gap:"7px",padding:"11px 16px",background:"#161b22",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
-        <span style={{width:12,height:12,borderRadius:"50%",background:"#ff5f57",display:"inline-block"}} />
-        <span style={{width:12,height:12,borderRadius:"50%",background:"#ffbd2e",display:"inline-block"}} />
-        <span style={{width:12,height:12,borderRadius:"50%",background:"#28c840",display:"inline-block"}} />
-        <span style={{flex:1,textAlign:"center",color:"rgba(255,255,255,0.28)",fontSize:"0.72rem"}}>Terminal</span>
+{/* ── HERO ── */}
+<div style={{background:"linear-gradient(180deg,#ffffff 0%,#EEF3FB 60%,#F8FAFF 100%)",position:"relative",overflow:"hidden"}}>
+  <div style={{position:"absolute",top:-60,right:-80,width:600,height:600,background:"radial-gradient(ellipse,rgba(53,95,167,0.07) 0%,transparent 65%)",pointerEvents:"none"}} />
+  <div style={{position:"absolute",bottom:-40,left:-80,width:400,height:400,background:"radial-gradient(ellipse,rgba(109,143,220,0.06) 0%,transparent 65%)",pointerEvents:"none"}} />
+
+  <div style={{maxWidth:1200,margin:"0 auto",padding:"96px 52px 80px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"center",position:"relative"}}>
+    {/* Left */}
+    <div>
+      <div style={{display:"inline-flex",alignItems:"center",gap:8,fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.68rem",color:"#5A6E8C",border:"1px solid #DDE6F5",padding:"4px 12px",borderRadius:100,marginBottom:24,letterSpacing:"0.05em",background:"#fff"}}>
+        <span className="bdot-pulse" style={{width:6,height:6,borderRadius:"50%",background:"#355FA7",display:"inline-block"}} />
+        Open Source · Self-hosted
       </div>
-      <div style={{padding:"20px 24px",color:"#c9d1d9",lineHeight:1.95}}>
-        <div><span style={{color:"rgba(255,255,255,0.3)"}}>{"$ "}</span>{"bench run --scenario booking-flow"}</div>
-        <div style={{color:"rgba(255,255,255,0.28)",marginBottom:"6px"}}>{"Running 5 turns against gpt-4o endpoint..."}</div>
-        <div><span style={{color:"#3fb950"}}>{"✔ "}</span>{"T1  Greet and confirm travel intent"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"120ms"}</span></div>
-        <div><span style={{color:"#3fb950"}}>{"✔ "}</span>{"T2  Collect origin and destination"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"98ms"}</span></div>
-        <div><span style={{color:"#3fb950"}}>{"✔ "}</span>{"T3  Call search_flights tool"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"340ms"}</span></div>
-        <div><span style={{color:"#3fb950"}}>{"✔ "}</span>{"T4  Present top 3 flight options"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"112ms"}</span></div>
-        <div><span style={{color:"#f85149"}}>{"✘ "}</span><span style={{color:"#f85149"}}>{"T5  Confirm booking — wrong total price"}</span><span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"88ms"}</span></div>
-        <div style={{marginTop:"12px",paddingTop:"12px",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex",gap:"20px",flexWrap:"wrap"}}>
-          <span style={{color:"#f85149"}}>{"✘ 1 failed"}</span>
-          <span style={{color:"#3fb950"}}>{"✔ 4 passed"}</span>
-          <span style={{color:"rgba(255,255,255,0.3)"}}>{"1 scenario · 758ms"}</span>
+      <h1 style={{fontFamily:"'Unbounded',sans-serif",fontSize:"clamp(2.4rem,4.5vw,3.8rem)",fontWeight:900,lineHeight:1.05,letterSpacing:"-0.04em",margin:"0 0 24px",color:"#0D1829"}}>
+        Test AI agents<br/>
+        before they<br/>
+        <span style={{color:"#355FA7"}}>break in prod.</span>
+      </h1>
+      <p style={{fontSize:"1rem",color:"#5A6E8C",lineHeight:1.85,margin:"0 0 40px",maxWidth:400}}>
+        Define multi-turn scenarios, run them against any agent endpoint,
+        and catch regressions before they reach your users.
+        LLM-based evaluation — not brittle string matching.
+      </p>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+        <a href="/docs/quickstart" style={{background:"#355FA7",color:"#fff",fontWeight:700,fontSize:"0.88rem",padding:"12px 26px",borderRadius:8,textDecoration:"none",letterSpacing:"0.01em"}}>Get started →</a>
+        <a href="https://github.com/arunprakaash/bench" style={{display:"flex",alignItems:"center",gap:8,color:"#0D1829",fontSize:"0.88rem",fontWeight:500,padding:"12px 22px",border:"1px solid #DDE6F5",borderRadius:8,textDecoration:"none",background:"#fff"}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+
+    {/* Terminal */}
+    <div style={{background:"#0d1117",borderRadius:14,overflow:"hidden",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.78rem",boxShadow:"0 4px 6px rgba(53,95,167,0.06),0 20px 48px rgba(13,24,41,0.12),0 0 0 1px rgba(53,95,167,0.1)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7,padding:"11px 16px",background:"#161b22",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+        <span style={{width:11,height:11,borderRadius:"50%",background:"#FF5F57",display:"inline-block"}} />
+        <span style={{width:11,height:11,borderRadius:"50%",background:"#FFBD2E",display:"inline-block"}} />
+        <span style={{width:11,height:11,borderRadius:"50%",background:"#28C840",display:"inline-block"}} />
+        <span style={{flex:1,textAlign:"center",color:"rgba(255,255,255,0.28)",fontSize:"0.68rem",letterSpacing:"0.08em"}}>TERMINAL</span>
+      </div>
+      <div style={{padding:"22px 26px",color:"rgba(216,228,245,0.85)",lineHeight:2.1}}>
+        <div className="tl tl0"><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench run --scenario booking-flow</div>
+        <div className="tl tl1"><span style={{color:"rgba(255,255,255,0.35)",fontSize:"0.7rem"}}>Running 5 turns against gpt-4o endpoint…</span></div>
+        <div className="tl tl2"><span style={{color:"#3fb950"}}>✔ </span>T1&nbsp; Greet and confirm travel intent<span style={{color:"rgba(255,255,255,0.22)",marginLeft:10,fontSize:"0.68rem"}}>118ms</span></div>
+        <div className="tl tl3"><span style={{color:"#3fb950"}}>✔ </span>T2&nbsp; Collect origin and destination<span style={{color:"rgba(255,255,255,0.22)",marginLeft:10,fontSize:"0.68rem"}}>94ms</span></div>
+        <div className="tl tl4"><span style={{color:"#3fb950"}}>✔ </span>T3&nbsp; Invoke search_flights tool<span style={{color:"rgba(255,255,255,0.22)",marginLeft:10,fontSize:"0.68rem"}}>312ms</span></div>
+        <div className="tl tl5"><span style={{color:"#3fb950"}}>✔ </span>T4&nbsp; Present top 3 flight options<span style={{color:"rgba(255,255,255,0.22)",marginLeft:10,fontSize:"0.68rem"}}>107ms</span></div>
+        <div className="tl tl6"><span style={{color:"#f85149"}}>✘ </span><span style={{color:"#f85149"}}>T5&nbsp; Confirm booking — wrong total price</span><span style={{color:"rgba(255,255,255,0.22)",marginLeft:10,fontSize:"0.68rem"}}>91ms</span></div>
+        <div className="tl tl7" style={{marginTop:14,paddingTop:14,borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex",gap:22,flexWrap:"wrap"}}>
+          <span style={{color:"#f85149"}}>✘ 1 failed</span>
+          <span style={{color:"#3fb950"}}>✔ 4 passed</span>
+          <span style={{color:"rgba(255,255,255,0.3)",fontSize:"0.7rem"}}>1 scenario · 722ms</span>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-{/* ===== FEATURES ===== */}
-<div style={{padding:"80px 32px 64px",background:"#f8fafc"}}>
-  <div style={{maxWidth:"1100px",margin:"0 auto"}}>
-    <h2 style={{textAlign:"center",fontSize:"clamp(1.8rem,4vw,2.4rem)",fontWeight:800,letterSpacing:"-0.025em",color:"#0f172a",margin:"0 0 10px"}}>
-      Agent testing and evaluation
-    </h2>
-    <p style={{textAlign:"center",color:"#64748b",margin:"0 auto 52px",maxWidth:"480px",fontSize:"1.05rem",lineHeight:1.65}}>
-      {"Test your agents across multi-turn scenarios using evaluation metrics you care about."}
-    </p>
-
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(420px,1fr))",gap:"20px"}}>
-
-      {/* Card: Scenarios */}
-      <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
-        <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>Multi-turn scenarios</div>
-        <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Define user messages, expected tool calls, and assertions for every turn in a conversation."}</div>
-        <img src="/features-svg/scenarios.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
-      </div>
-
-      {/* Card: Evaluation */}
-      <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
-        <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>LLM-based evaluation</div>
-        <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"An LLM judge checks semantic intent."}</div>
-        <img src="/features-svg/evaluation.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
-      </div>
-
-      {/* Card: CI/CD */}
-      <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
-        <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>CI/CD integration</div>
-        <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Trigger bench runs from GitHub Actions. Block merges when agent quality drops below your threshold."}</div>
-        <img src="/features-svg/cicd.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
-      </div>
-
-      {/* Card: Failures */}
-      <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
-        <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>Failure analysis</div>
-        <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Triage failed runs from one place. See exactly which turn failed with judge reasoning inline."}</div>
-        <img src="/features-svg/failures.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
-      </div>
-
-      {/* Card: CLI */}
-      <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px",overflow:"hidden",gridColumn:"1 / -1"}}>
-        <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>CLI</div>
-        <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Run scenarios, inspect agents, and manage suites directly from your terminal — no browser required."}</div>
-        <div style={{background:"#0d1117",borderRadius:"10px",padding:"18px 22px",fontFamily:"'Fira Code','Fira Mono',Menlo,Consolas,monospace",fontSize:"0.8rem",color:"#c9d1d9",lineHeight:1.9,overflowX:"auto"}}>
-          <div><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench scenarios ls</div>
-          <div style={{color:"rgba(255,255,255,0.45)",marginBottom:"8px"}}>{"booking-flow   3 turns   payments, travel   2h ago"}</div>
-          <div><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench run --scenario booking-flow</div>
-          <div style={{color:"rgba(255,255,255,0.35)"}}>{"Running 3 turns against gpt-4o endpoint..."}</div>
-          <div><span style={{color:"#3fb950"}}>✔ </span>{"T1  Greet and confirm travel intent"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"120ms"}</span></div>
-          <div><span style={{color:"#3fb950"}}>✔ </span>{"T2  Collect origin and destination"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"98ms"}</span></div>
-          <div><span style={{color:"#f85149"}}>✘ </span><span style={{color:"#f85149"}}>{"T3  Confirm booking — wrong total price"}</span><span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"88ms"}</span></div>
-          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.07)"}}><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench runs ls --status failed</div>
-          <div style={{color:"rgba(255,255,255,0.45)"}}>{"<run-id>   booking-flow   failed   2/3   306ms   just now"}</div>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
 
-{/* ===== HOW IT WORKS ===== */}
-<div style={{padding:"72px 32px",background:"white"}}>
-  <div style={{maxWidth:"960px",margin:"0 auto"}}>
-    <h2 style={{textAlign:"center",fontSize:"clamp(1.6rem,3.5vw,2.2rem)",fontWeight:800,letterSpacing:"-0.02em",color:"#0f172a",margin:"0 0 8px"}}>
-      From agent to coverage in minutes
-    </h2>
-    <p style={{textAlign:"center",color:"#64748b",margin:"0 auto 56px",maxWidth:"400px",fontSize:"1rem",lineHeight:1.65}}>
-      {"No complex setup. Just point, define, and run."}
-    </p>
-
-    <div style={{display:"flex",flexDirection:"column",gap:"0"}}>
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"48px",alignItems:"center",padding:"40px 0"}}>
-        <div>
-          <div style={{fontSize:"0.7rem",fontWeight:800,letterSpacing:"0.08em",color:"lab(40.8025 9.52566 -42.921)",marginBottom:"12px"}}>01</div>
-          <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Connect your agent</div>
-          <div style={{fontSize:"0.92rem",color:"#64748b",lineHeight:1.75}}>{"Point Bench at any HTTP endpoint. Add auth headers and configure the model."}</div>
-        </div>
-        <img src="/features-svg/step-connect.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
+{/* ── STRIP ── */}
+<div style={{borderTop:"1px solid #E2E8F5",borderBottom:"1px solid #E2E8F5",background:"#F8FAFF"}}>
+  <div style={{maxWidth:1200,margin:"0 auto",padding:"18px 52px",display:"flex",justifyContent:"center",flexWrap:"wrap"}}>
+    {["Multi-turn scenarios","LLM-based evaluation","CI/CD integration","Failure analysis","Test suites","SDK + CLI + MCP"].map((label,i,arr) => (
+      <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 28px",fontSize:"0.82rem",color:"#5A6E8C",borderRight:i<arr.length-1?"1px solid #E2E8F5":"none"}}>
+        <span style={{width:5,height:5,borderRadius:"50%",background:"#355FA7",display:"inline-block",flexShrink:0}} />
+        {label}
       </div>
-
-      <div style={{height:"1px",background:"#f1f5f9"}} />
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"48px",alignItems:"center",padding:"40px 0"}}>
-        <img src="/features-svg/step-scenarios.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
-        <div>
-          <div style={{fontSize:"0.7rem",fontWeight:800,letterSpacing:"0.08em",color:"lab(40.8025 9.52566 -42.921)",marginBottom:"12px"}}>02</div>
-          <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Write scenarios</div>
-          <div style={{fontSize:"0.92rem",color:"#64748b",lineHeight:1.75}}>{"Define conversations with per-turn expectations — messages, tool calls, or handoffs."}</div>
-        </div>
-      </div>
-
-      <div style={{height:"1px",background:"#f1f5f9"}} />
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"48px",alignItems:"center",padding:"40px 0"}}>
-        <div>
-          <div style={{fontSize:"0.7rem",fontWeight:800,letterSpacing:"0.08em",color:"lab(40.8025 9.52566 -42.921)",marginBottom:"12px"}}>03</div>
-          <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Run and evaluate</div>
-          <div style={{fontSize:"0.92rem",color:"#64748b",lineHeight:1.75}}>{"Bench runs each turn and evaluates every expectation with an LLM judge."}</div>
-        </div>
-        <img src="/features-svg/step-evaluate.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
-      </div>
-
-      <div style={{height:"1px",background:"#f1f5f9"}} />
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"48px",alignItems:"center",padding:"40px 0"}}>
-        <img src="/features-svg/step-regressions.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
-        <div>
-          <div style={{fontSize:"0.7rem",fontWeight:800,letterSpacing:"0.08em",color:"lab(40.8025 9.52566 -42.921)",marginBottom:"12px"}}>04</div>
-          <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Catch regressions</div>
-          <div style={{fontSize:"0.92rem",color:"#64748b",lineHeight:1.75}}>{"Schedule runs, connect CI, and get alerted when quality drops."}</div>
-        </div>
-      </div>
-
-    </div>
+    ))}
   </div>
 </div>
 
-{/* ===== CTA ===== */}
-<div style={{background:"#f8fafc",borderTop:"1px solid #e2e8f0",padding:"80px 32px",textAlign:"center"}}>
-  <h2 style={{fontSize:"clamp(1.8rem,4vw,2.4rem)",fontWeight:800,letterSpacing:"-0.02em",margin:"0 0 12px",color:"#0f172a"}}>
-    Start testing your agent today
+{/* ── FEATURES ── */}
+<div style={{maxWidth:1200,margin:"0 auto",padding:"96px 52px"}}>
+  <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.68rem",letterSpacing:"0.12em",color:"#355FA7",textTransform:"uppercase",marginBottom:14}}>Capabilities</div>
+  <h2 style={{fontFamily:"'Unbounded',sans-serif",fontSize:"clamp(1.6rem,3vw,2.4rem)",fontWeight:800,letterSpacing:"-0.035em",lineHeight:1.08,margin:"0 0 16px",color:"#0D1829"}}>
+    Everything you need<br/>to trust your agents
   </h2>
-  <p style={{color:"#64748b",margin:"0 0 32px",fontSize:"1.05rem"}}>
-    {"Open source, self-hosted."}
+  <p style={{fontSize:"0.98rem",color:"#5A6E8C",lineHeight:1.8,maxWidth:480,margin:"0 0 56px"}}>
+    From first scenario to production CI gate — bench gives you the full testing loop for AI agents.
   </p>
-  <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap"}}>
-    <a href="/docs/quickstart" style={{padding:"12px 30px",background:"lab(40.8025 9.52566 -42.921)",color:"white",borderRadius:"8px",fontWeight:700,fontSize:"1rem",textDecoration:"none"}}>
-      Read the docs
-    </a>
-    <a href="https://github.com/arunprakaash/bench" style={{padding:"12px 26px",border:"1px solid #e2e8f0",color:"#334155",borderRadius:"8px",fontWeight:600,fontSize:"1rem",textDecoration:"none",background:"white"}}>
+
+  <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:20}}>
+
+    <div style={{background:"#fff",border:"1px solid #E2E8F5",borderRadius:16,padding:"28px",boxShadow:"0 1px 4px rgba(13,24,41,0.04)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div style={{width:32,height:32,borderRadius:7,background:"#EEF3FB",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="16" height="16" viewBox="64 64 896 896" fill="#355FA7"><path d="M916 210H376c-17.7 0-32 14.3-32 32v236H108c-17.7 0-32 14.3-32 32v272c0 17.7 14.3 32 32 32h540c17.7 0 32-14.3 32-32V546h236c17.7 0 32-14.3 32-32V242c0-17.7-14.3-32-32-32zm-504 68h200v200H412V278zm-68 468H144V546h200v200zm268 0H412V546h200v200zm268-268H680V278h200v200z"/></svg>
+        </div>
+        <div style={{fontWeight:700,fontSize:"1rem",color:"#0D1829"}}>Multi-turn scenarios</div>
+      </div>
+      <div style={{fontSize:"0.875rem",color:"#5A6E8C",marginBottom:24,lineHeight:1.65}}>Define user messages, expected tool calls, and assertions for every turn in a conversation. Version-controlled — every save is restorable.</div>
+      <div style={{background:"#EEF3FB",borderRadius:10,overflow:"hidden",marginTop:4}}><img src="/features-svg/scenarios.png" style={{width:"100%",display:"block"}} /></div>
+    </div>
+
+    <div style={{background:"#fff",border:"1px solid #E2E8F5",borderRadius:16,padding:"28px",boxShadow:"0 1px 4px rgba(13,24,41,0.04)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div style={{width:32,height:32,borderRadius:7,background:"#EEF3FB",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="16" height="16" viewBox="64 64 896 896" fill="#355FA7"><path d="M300 328a60 60 0 10120 0 60 60 0 10-120 0zM852 64H172c-17.7 0-32 14.3-32 32v660c0 17.7 14.3 32 32 32h680c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-32 660H204V128h616v596zM604 328a60 60 0 10120 0 60 60 0 10-120 0zm250.2 556H169.8c-16.5 0-29.8 14.3-29.8 32v36c0 4.4 3.3 8 7.4 8h729.1c4.1 0 7.4-3.6 7.4-8v-36c.1-17.7-13.2-32-29.7-32zM664 508H360c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h304c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8z"/></svg>
+        </div>
+        <div style={{fontWeight:700,fontSize:"1rem",color:"#0D1829"}}>LLM-based evaluation</div>
+      </div>
+      <div style={{fontSize:"0.875rem",color:"#5A6E8C",marginBottom:24,lineHeight:1.65}}>An LLM judge checks semantic intent, not brittle string matches. It explains exactly why a turn passed or failed.</div>
+      <div style={{background:"#EEF3FB",borderRadius:10,overflow:"hidden",marginTop:4}}><img src="/features-svg/evaluation.png" style={{width:"100%",display:"block"}} /></div>
+    </div>
+
+    <div style={{background:"#fff",border:"1px solid #E2E8F5",borderRadius:16,padding:"28px",boxShadow:"0 1px 4px rgba(13,24,41,0.04)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div style={{width:32,height:32,borderRadius:7,background:"#EEF3FB",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="16" height="16" viewBox="64 64 896 896" fill="#355FA7"><path d="M396 140h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm-44 684h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm524-204h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM192 344h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 160h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 160h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 160h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm320 0h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm160 0h-56c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm140-284c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V370c0-127-103-230-230-230H484c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h170c87.3 0 158 70.7 158 158v170zM236 96H92c-4.4 0-8 3.6-8 8v144c0 4.4 3.6 8 8 8h144c4.4 0 8-3.6 8-8V104c0-4.4-3.6-8-8-8zm-48 101.6c0 1.3-1.1 2.4-2.4 2.4h-43.2c-1.3 0-2.4-1.1-2.4-2.4v-43.2c0-1.3 1.1-2.4 2.4-2.4h43.2c1.3 0 2.4 1.1 2.4 2.4v43.2zM920 780H776c-4.4 0-8 3.6-8 8v144c0 4.4 3.6 8 8 8h144c4.4 0 8-3.6 8-8V788c0-4.4-3.6-8-8-8zm-48 101.6c0 1.3-1.1 2.4-2.4 2.4h-43.2c-1.3 0-2.4-1.1-2.4-2.4v-43.2c0-1.3 1.1-2.4 2.4-2.4h43.2c1.3 0 2.4 1.1 2.4 2.4v43.2z"/></svg>
+        </div>
+        <div style={{fontWeight:700,fontSize:"1rem",color:"#0D1829"}}>CI/CD integration</div>
+      </div>
+      <div style={{fontSize:"0.875rem",color:"#5A6E8C",marginBottom:24,lineHeight:1.65}}>Trigger bench runs from GitHub Actions. Exit non-zero on failure. Block merges when agent quality drops below your bar.</div>
+      <div style={{background:"#EEF3FB",borderRadius:10,overflow:"hidden",marginTop:4}}><img src="/features-svg/cicd.png" style={{width:"100%",display:"block"}} /></div>
+    </div>
+
+    <div style={{background:"#fff",border:"1px solid #E2E8F5",borderRadius:16,padding:"28px",boxShadow:"0 1px 4px rgba(13,24,41,0.04)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div style={{width:32,height:32,borderRadius:7,background:"#EEF3FB",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="16" height="16" viewBox="0 0 1024 1024" fill="#355FA7"><path d="M885.2 446.3l-.2-.8-112.2-285.1c-5-16.1-19.9-27.2-36.8-27.2H281.2c-17 0-32.1 11.3-36.9 27.6L139.4 443l-.3.7-.2.8c-1.3 4.9-1.7 9.9-1 14.8-.1 1.6-.2 3.2-.2 4.8V830a60.9 60.9 0 0060.8 60.8h627.2c33.5 0 60.8-27.3 60.9-60.8V464.1c0-1.3 0-2.6-.1-3.7.4-4.9 0-9.6-1.3-14.1zm-295.8-43l-.3 15.7c-.8 44.9-31.8 75.1-77.1 75.1-22.1 0-41.1-7.1-54.8-20.6S436 441.2 435.6 419l-.3-15.7H229.5L309 210h399.2l81.7 193.3H589.4zm-375 76.8h157.3c24.3 57.1 76 90.8 140.4 90.8 33.7 0 65-9.4 90.3-27.2 22.2-15.6 39.5-37.4 50.7-63.6h156.5V814H214.4V480.1z"/></svg>
+        </div>
+        <div style={{fontWeight:700,fontSize:"1rem",color:"#0D1829"}}>Failure analysis</div>
+      </div>
+      <div style={{fontSize:"0.875rem",color:"#5A6E8C",marginBottom:24,lineHeight:1.65}}>Triage failed runs from one inbox. The first failing turn is surfaced immediately with judge reasoning inline.</div>
+      <div style={{background:"#EEF3FB",borderRadius:10,overflow:"hidden",marginTop:4}}><img src="/features-svg/failures.png" style={{width:"100%",display:"block"}} /></div>
+    </div>
+
+  </div>
+</div>
+
+{/* ── HOW IT WORKS ── */}
+<div style={{background:"#F8FAFF",borderTop:"1px solid #E2E8F5",borderBottom:"1px solid #E2E8F5"}}>
+  <div style={{maxWidth:1200,margin:"0 auto",padding:"96px 52px"}}>
+    <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.68rem",letterSpacing:"0.12em",color:"#355FA7",textTransform:"uppercase",marginBottom:14}}>How it works</div>
+    <h2 style={{fontFamily:"'Unbounded',sans-serif",fontSize:"clamp(1.6rem,3vw,2.4rem)",fontWeight:800,letterSpacing:"-0.035em",lineHeight:1.08,margin:"0 0 16px",color:"#0D1829"}}>
+      From agent to coverage<br/>in minutes
+    </h2>
+    <p style={{fontSize:"0.98rem",color:"#5A6E8C",lineHeight:1.8,maxWidth:480,margin:"0 0 56px"}}>No complex setup. No DSL to learn. Just point, define, and run.</p>
+
+    <div style={{display:"flex",flexDirection:"column",gap:0}}>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"center",padding:"40px 0"}}>
+        <div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:"0.65rem",fontWeight:800,letterSpacing:"0.08em",color:"#355FA7",marginBottom:12}}>01</div>
+          <div style={{fontWeight:700,fontSize:"1.1rem",color:"#0D1829",marginBottom:12}}>Connect your agent</div>
+          <div style={{fontSize:"0.92rem",color:"#5A6E8C",lineHeight:1.75}}>Point bench at any HTTP endpoint. Add auth headers, configure the model, and you're ready. Or use the SDK decorator — one line.</div>
+        </div>
+        <img src="/features-svg/step-connect.png" style={{width:"100%",display:"block",borderRadius:16}} />
+      </div>
+
+      <div style={{height:1,background:"#F1F5F9"}} />
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"center",padding:"40px 0"}}>
+        <img src="/features-svg/step-scenarios.png" style={{width:"100%",display:"block",borderRadius:16}} />
+        <div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:"0.65rem",fontWeight:800,letterSpacing:"0.08em",color:"#355FA7",marginBottom:12}}>02</div>
+          <div style={{fontWeight:700,fontSize:"1.1rem",color:"#0D1829",marginBottom:12}}>Write scenarios</div>
+          <div style={{fontSize:"0.92rem",color:"#5A6E8C",lineHeight:1.75}}>Define conversations with per-turn expectations — messages, tool calls, or handoffs.</div>
+        </div>
+      </div>
+
+      <div style={{height:1,background:"#F1F5F9"}} />
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"center",padding:"40px 0"}}>
+        <div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:"0.65rem",fontWeight:800,letterSpacing:"0.08em",color:"#355FA7",marginBottom:12}}>03</div>
+          <div style={{fontWeight:700,fontSize:"1.1rem",color:"#0D1829",marginBottom:12}}>Run and evaluate</div>
+          <div style={{fontSize:"0.92rem",color:"#5A6E8C",lineHeight:1.75}}>Bench runs each turn and evaluates every expectation with an LLM judge. Get a verdict, a score, and a reason.</div>
+        </div>
+        <img src="/features-svg/step-evaluate.png" style={{width:"100%",display:"block",borderRadius:16}} />
+      </div>
+
+      <div style={{height:1,background:"#F1F5F9"}} />
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"center",padding:"40px 0"}}>
+        <img src="/features-svg/step-regressions.png" style={{width:"100%",display:"block",borderRadius:16}} />
+        <div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:"0.65rem",fontWeight:800,letterSpacing:"0.08em",color:"#355FA7",marginBottom:12}}>04</div>
+          <div style={{fontWeight:700,fontSize:"1.1rem",color:"#0D1829",marginBottom:12}}>Catch regressions</div>
+          <div style={{fontSize:"0.92rem",color:"#5A6E8C",lineHeight:1.75}}>Schedule runs, connect CI, and get alerted when quality drops.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{/* ── SDK ── */}
+<div style={{maxWidth:1200,margin:"0 auto",padding:"96px 52px"}}>
+  <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.68rem",letterSpacing:"0.12em",color:"#355FA7",textTransform:"uppercase",marginBottom:14}}>Integration</div>
+  <h2 style={{fontFamily:"'Unbounded',sans-serif",fontSize:"clamp(1.6rem,3vw,2.4rem)",fontWeight:800,letterSpacing:"-0.035em",lineHeight:1.08,margin:"0 0 16px",color:"#0D1829"}}>
+    One decorator.<br/>Full coverage.
+  </h2>
+  <p style={{fontSize:"0.98rem",color:"#5A6E8C",lineHeight:1.8,maxWidth:480,margin:"0 0 48px"}}>Add bench to any FastAPI endpoint in seconds. Auto-registers your agent and exposes it to all scenarios.</p>
+
+  <div style={{background:"#fff",border:"1px solid #E2E8F5",borderRadius:16,overflow:"hidden",display:"grid",gridTemplateColumns:"1fr 1fr",boxShadow:"0 2px 8px rgba(13,24,41,0.05)"}}>
+    <div style={{padding:48,display:"flex",flexDirection:"column",justifyContent:"center",gap:28}}>
+      {[
+        ["SDK","A single decorator registers your FastAPI endpoint with bench. No config files. No boilerplate."],
+        ["CLI","Run scenarios, inspect agents, and manage suites from your terminal — no browser required."],
+        ["MCP","Use bench from Claude Desktop via Model Context Protocol. Create scenarios by conversing with your agents."],
+      ].map(([label,desc]) => (
+        <div key={label}>
+          <div style={{fontWeight:600,fontSize:"0.95rem",color:"#0D1829",marginBottom:7}}>{label}</div>
+          <p style={{fontSize:"0.83rem",color:"#5A6E8C",lineHeight:1.75,margin:0}}>{desc}</p>
+        </div>
+      ))}
+    </div>
+    <pre style={{background:"#0d1117",padding:"36px",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.79rem",color:"#c9d1d9",lineHeight:2,borderLeft:"1px solid #E2E8F5",overflowX:"auto",margin:0,whiteSpace:"pre"}} dangerouslySetInnerHTML={{__html:
+`<span style="color:rgba(255,255,255,0.3)"># Install</span>
+<span style="color:#79c0ff">pip</span> install bench-sdk
+
+<span style="color:rgba(255,255,255,0.3)"># Register your agent in one line</span>
+<span style="color:#ff7b72">from</span> bench_sdk <span style="color:#ff7b72">import</span> bench
+<span style="color:#ff7b72">from</span> fastapi <span style="color:#ff7b72">import</span> FastAPI
+
+app = FastAPI()
+
+<span style="color:#79c0ff">@bench.agent()</span>
+<span style="color:#79c0ff">@app.post</span>(<span style="color:#a5d6ff">"/chat"</span>)
+<span style="color:#ff7b72">async def</span> <span style="color:#d2a8ff">my_agent</span>(req: ChatRequest):
+    response = <span style="color:#ff7b72">await</span> <span style="color:#d2a8ff">call_llm</span>(req.messages)
+    <span style="color:#ff7b72">return</span> {<span style="color:#a5d6ff">"message"</span>: response}
+
+<span style="color:rgba(255,255,255,0.3)"># Then run from the terminal</span>
+<span style="color:#3fb950">$</span> bench run --scenario my-scenario`
+    }} />
+  </div>
+</div>
+
+{/* ── CTA ── */}
+<div style={{background:"#EEF3FB",borderTop:"1px solid #DDE6F5",borderBottom:"1px solid #DDE6F5",padding:"100px 52px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:900,height:500,background:"radial-gradient(ellipse,rgba(53,95,167,0.1) 0%,transparent 65%)",pointerEvents:"none"}} />
+  <h2 style={{fontFamily:"'Unbounded',sans-serif",fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,letterSpacing:"-0.04em",margin:"0 0 14px",color:"#0D1829",position:"relative"}}>
+    Start testing today.
+  </h2>
+  <p style={{fontSize:"1rem",color:"#5A6E8C",margin:"0 0 40px",position:"relative"}}>Open source · Self-hosted · Free to use</p>
+  <div style={{display:"flex",gap:14,justifyContent:"center",flexWrap:"wrap",position:"relative"}}>
+    <a href="/docs/quickstart" style={{background:"#355FA7",color:"#fff",fontWeight:700,fontSize:"0.9rem",padding:"13px 28px",borderRadius:8,textDecoration:"none",letterSpacing:"0.01em"}}>Read the docs →</a>
+    <a href="https://github.com/arunprakaash/bench" style={{display:"flex",alignItems:"center",gap:8,color:"#0D1829",fontSize:"0.9rem",fontWeight:500,padding:"13px 24px",border:"1px solid #DDE6F5",borderRadius:8,textDecoration:"none",background:"#fff"}}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
       Star on GitHub
     </a>
   </div>
 </div>
+
+{/* ── FOOTER ── */}
+<footer style={{maxWidth:1200,margin:"0 auto",padding:"28px 52px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:"1px solid #E2E8F5"}}>
+  <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:"0.8rem",fontWeight:800,color:"#5A6E8C",letterSpacing:"-0.02em"}}>bench.</div>
+  <div style={{display:"flex",gap:22}}>
+    <a href="/docs/quickstart" style={{fontSize:"0.8rem",color:"#5A6E8C",textDecoration:"none"}}>Quickstart</a>
+    <a href="/docs/concepts" style={{fontSize:"0.8rem",color:"#5A6E8C",textDecoration:"none"}}>Concepts</a>
+    <a href="https://github.com/arunprakaash/bench" style={{fontSize:"0.8rem",color:"#5A6E8C",textDecoration:"none"}}>GitHub</a>
+  </div>
+</footer>
 
 </div>

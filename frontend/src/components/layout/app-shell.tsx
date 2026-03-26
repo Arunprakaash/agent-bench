@@ -23,6 +23,7 @@ import { syncDocumentThemeFromStorage } from "@/lib/theme";
 import { usePathname, useRouter } from "next/navigation";
 import { WorkspaceProvider, useWorkspace } from "@/lib/workspace-context";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { BenchAIPanel } from "@/components/bench-ai/panel";
 
 function TopBarBreadcrumbs() {
   const { items } = useBreadcrumbs();
@@ -193,6 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
+        <BenchAIPanel />
         </WorkspaceGate>
       </BreadcrumbsProvider>
       </WorkspaceProvider>

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api import agents, auth, automation, chat, dev, failures, invites, runs, scenarios, suites, workspaces
+from app.api import agents, auth, automation, bench_agent, chat, dev, failures, invites, runs, scenarios, suites, workspaces
 from app.config import settings
 from app.database import Base, engine
 import app.models  # noqa: F401
@@ -374,6 +374,7 @@ app.include_router(suites.router, prefix="/api/suites", tags=["suites"])
 app.include_router(runs.router, prefix="/api/runs", tags=["runs"])
 app.include_router(failures.router, prefix="/api/failures", tags=["failures"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(bench_agent.router, prefix="/api/bench-agent", tags=["bench-agent"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(automation.router, prefix="/api/automation", tags=["automation"])
 app.include_router(workspaces.router, prefix="/api/workspaces", tags=["workspaces"])

@@ -25,6 +25,7 @@ dependencies = [
     "celery[redis]",
     "livekit-agents>=1.2.6",
     "livekit-plugins-openai",
+    "openai-agents",
 ]
 
 [project.optional-dependencies]

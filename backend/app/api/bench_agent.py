@@ -2,7 +2,9 @@
 
 import json
 import os
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -13,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from agents import Agent, Runner, RunContextWrapper, function_tool
+from agents.mcp import MCPServerStdio
 
 from app.api.access import get_user_workspace_ids, ownership_filter
+from app.api.auth import _create_token
 from app.api.auth import get_current_user
 from app.config import settings
 from app.database import get_db
@@ -44,16 +48,6 @@ class TurnExpectation(BaseModel):
 class TurnInput(BaseModel):
     user_input: str
     expectations: list[TurnExpectation]
-
-
-class ElicitationField(BaseModel):
-    name: str
-    label: str
-    type: str  # "string" | "number" | "boolean" | "select" | "email" | "textarea"
-    description: str | None = None
-    options: list[str] | None = None  # for select type
-    required: bool = True
-    placeholder: str | None = None
 
 
 # ─── Context ──────────────────────────────────────────────────────────────────
@@ -86,11 +80,10 @@ Guidelines for great scenarios:
 - Probe the agent several times before writing expectations so you understand its real behavior.
 - Always confirm with the user before creating anything.
 
-Using elicitation:
-- When you need specific structured details from the user (agent purpose, test parameters, persona details), \
-call elicitate to show them an inline form instead of asking in plain text.
-- Use elicitation for initial information gathering (e.g., agent name, type, target behaviors).
-- Keep forms short — 2–4 fields maximum. Ask for more in follow-up elicitations if needed."""
+Tool usage:
+- Prefer MCP tools to inspect agents, probe behavior, and create scenarios/suites.
+- If tool arguments are missing, rely on MCP elicitation to ask the user for structured input.
+- For executing scenarios, prefer `run_scenario` (async start) then `wait_for_run`/`get_run` polling instead of expecting immediate completion."""
 
 
 # ─── Tools ────────────────────────────────────────────────────────────────────
@@ -289,39 +282,6 @@ async def create_suite(
         return json.dumps({"error": str(e)})
 
 
-@function_tool
-async def elicitate(
-    wrapper: RunContextWrapper[BenchContext],
-    message: str,
-    fields: list[ElicitationField],
-) -> str:
-    """Request structured information from the user through an inline form in the chat UI.
-    Use this instead of asking questions in plain text when you need specific structured details.
-    The conversation pauses until the user submits the form.
-
-    Args:
-        message: Clear explanation of what information you need and why.
-        fields: Form fields to collect. Each needs: name (snake_case identifier),
-            label (human-readable), type (string/number/boolean/select/email/textarea).
-            For select type, include options. For string/email/textarea, include placeholder.
-    """
-    return json.dumps({
-        "_elicitation": True,
-        "message": message,
-        "fields": [f.model_dump() for f in fields],
-    })
-
-
-# ─── Agent definition ─────────────────────────────────────────────────────────
-
-_bench_agent = Agent(
-    name="Bench AI",
-    model="gpt-4o",
-    instructions=SYSTEM_PROMPT,
-    tools=[list_agents, get_agent, probe_agent, list_scenarios, create_scenario, list_suites, create_suite, elicitate],
-)
-
-
 # ─── SSE stream ───────────────────────────────────────────────────────────────
 
 _TOOL_LABELS: dict[str, str] = {
@@ -332,7 +292,7 @@ _TOOL_LABELS: dict[str, str] = {
     "create_scenario": "Creating scenario…",
     "list_suites": "Listing suites…",
     "create_suite": "Creating suite…",
-    "elicitate": "Requesting information…",
+    "wait_for_run": "Waiting for run to complete…",
 }
 
 
@@ -347,9 +307,20 @@ async def _stream(messages: list[dict], workspace_id: str | None, user: User, db
         workspace_id=UUID(workspace_id) if workspace_id else None,
     )
 
-    try:
-        result = Runner.run_streamed(_bench_agent, messages, context=context)
+    path = Path(__file__).resolve()
+    candidates = [
+        path.parents[2] / "mcp" / "bench_mcp" / "server.py",  # /app/mcp/... in Docker
+        path.parents[3] / "mcp" / "bench_mcp" / "server.py",  # local monorepo layout
+    ]
+    mcp_server_script = next((p for p in candidates if p.exists()), candidates[0])
+    if not mcp_server_script.exists():
+        yield f"data: {json.dumps({'type': 'error', 'message': f'MCP-only mode error: MCP server script not found at {mcp_server_script}'})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
+    bench_api_url = settings.bench_api_url.rstrip("/")
+    bench_api_token = _create_token(user)
 
+    async def _stream_runner_events(result):
         async for event in result.stream_events():
             if event.type == "raw_response_event":
                 from openai.types.responses import ResponseTextDeltaEvent
@@ -380,8 +351,38 @@ async def _stream(messages: list[dict], workspace_id: str | None, user: User, db
                     else:
                         yield f"data: {json.dumps({'type': 'tool_done', 'result': parsed})}\n\n"
 
+    try:
+        async with MCPServerStdio(
+            name="Bench MCP",
+            params={
+                "command": "env",
+                "args": [
+                    f"BENCH_API_URL={bench_api_url}",
+                    f"BENCH_API_TOKEN={bench_api_token}",
+                    sys.executable,
+                    str(mcp_server_script),
+                ],
+            },
+            client_session_timeout_seconds=120,
+            cache_tools_list=True,
+        ) as mcp_server:
+            bench_agent = Agent(
+                name="Bench AI",
+                model="gpt-4o",
+                instructions=SYSTEM_PROMPT,
+                mcp_servers=[mcp_server],
+                mcp_config={
+                    "convert_schemas_to_strict": False,
+                    "failure_error_function": None,
+                },
+            )
+            result = Runner.run_streamed(bench_agent, messages, context=context)
+            async for payload in _stream_runner_events(result):
+                yield payload
     except Exception as e:
-        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'message': f'MCP-only mode error: {e}'})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
 
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
 

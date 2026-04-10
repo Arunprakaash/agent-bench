@@ -26,6 +26,7 @@ dependencies = [
     "livekit-agents>=1.2.6",
     "livekit-plugins-openai",
     "openai-agents",
+    "mcp[cli]>=1.0",
 ]
 
 [project.optional-dependencies]

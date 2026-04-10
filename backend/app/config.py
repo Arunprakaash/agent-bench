@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     openai_api_key: str = ""
+    bench_api_url: str = "http://localhost:8000"
 
     # Auth (JWT, minimal for now)
     jwt_secret: str = "dev-change-me"

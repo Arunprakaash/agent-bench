@@ -717,11 +717,13 @@ export function BenchAIPanel({
       ),
     );
 
-    // Format the submitted data using field labels
-    const lines = elicitation
-      ? elicitation.fields.map((f) => `${f.label}: ${data[f.name] ?? ""}`)
-      : Object.entries(data).map(([k, v]) => `${k}: ${v}`);
-    const formattedContent = lines.join("\n");
+    // Send structured values back as JSON so MCP tools can parse field keys reliably.
+    const normalizedData = elicitation
+      ? Object.fromEntries(
+          elicitation.fields.map((f) => [f.name, data[f.name] ?? ""]),
+        )
+      : data;
+    const formattedContent = JSON.stringify(normalizedData, null, 2);
 
     void sendMessage(
       formattedContent,
